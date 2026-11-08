@@ -187,3 +187,5 @@ These are the **defaults**. When tasks are run (the default), they are replaced 
 ## License
 
 MIT
+
+The background photo in the report (`assets/hero.jpg`) is by the author, [@Lyamon4](https://github.com/Lyamon4).
