@@ -1,0 +1,20 @@
+| id | city       | country    | population | founded | coastal |
+|----|------------|------------|-----------:|--------:|---------|
+| 1  | Lisbon     | Portugal   |    545,000 |   -1200 | yes     |
+| 2  | Almaty     | Kazakhstan |  2,200,000 |    1854 | no      |
+| 3  | Reykjavik  | Iceland    |    140,000 |     874 | yes     |
+| 4  | Kyoto      | Japan      |  1,460,000 |     794 | no      |
+| 5  | Valparaíso | Chile      |    300,000 |    1536 | yes     |
+| 6  | Tbilisi    | Georgia    |  1,200,000 |     479 | no      |
+
+SELECT country, COUNT(*) AS cities, SUM(population) AS total
+FROM cities
+WHERE coastal = 'yes'
+GROUP BY country
+ORDER BY total DESC;
+
+name,score,passed
+alice,91,true
+bob,67,true
+carol,48,false
+dave,77,true

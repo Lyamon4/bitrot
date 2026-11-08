@@ -1,0 +1,12 @@
+{
+  "service": "inference-gateway",
+  "version": "2.4.1",
+  "listen": { "host": "0.0.0.0", "port": 8080, "tls": false },
+  "models": [
+    { "id": "chat-small", "path": "/models/chat-small-q4.gguf", "context": 8192, "gpu_layers": 32, "max_batch": 8 },
+    { "id": "embed", "path": "/models/embed-f16.gguf", "context": 512, "gpu_layers": 0, "max_batch": 64 }
+  ],
+  "limits": { "requests_per_minute": 600, "max_tokens": 4096, "timeout_seconds": 120 },
+  "logging": { "level": "info", "format": "json", "redact": ["authorization", "cookie"] },
+  "cache": { "enabled": true, "backend": "redis", "url": "redis://cache:6379/0", "ttl_seconds": 3600 }
+}

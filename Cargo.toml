@@ -1,0 +1,39 @@
+[package]
+name = "kldrift"
+version = "0.1.0"
+edition = "2021"
+description = "Measure how much quantization actually changed your local LLM: per-token KL divergence across GGUF and MLX, with speed, memory and energy on your own hardware."
+license = "MIT"
+readme = "README.md"
+keywords = ["llm", "quantization", "gguf", "mlx", "kl-divergence"]
+categories = ["command-line-utilities", "science"]
+
+[features]
+default = ["llama"]
+# In-process llama.cpp backend (GGUF). Uses Metal automatically on macOS.
+llama = ["dep:llama-cpp-2"]
+# Build llama.cpp with CUDA (Linux/Windows + NVIDIA).
+cuda = ["llama", "llama-cpp-2/cuda"]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.6", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1.2"
+glob = "0.3"
+indicatif = "0.18"
+owo-colors = "4"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+llama-cpp-2 = { version = "0.1.161", optional = true, default-features = false, features = ["common"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+llama-cpp-2 = { version = "0.1.161", optional = true, default-features = false, features = ["common", "metal"] }
+
+[build-dependencies]
+cc = "1.11"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

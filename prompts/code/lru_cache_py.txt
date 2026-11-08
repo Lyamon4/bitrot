@@ -1,0 +1,47 @@
+from collections import OrderedDict
+from typing import Generic, Hashable, Optional, TypeVar
+
+K = TypeVar("K", bound=Hashable)
+V = TypeVar("V")
+
+
+class LRUCache(Generic[K, V]):
+    """Least-recently-used cache with O(1) get and put."""
+
+    def __init__(self, capacity: int) -> None:
+        if capacity <= 0:
+            raise ValueError("capacity must be positive")
+        self.capacity = capacity
+        self._items: "OrderedDict[K, V]" = OrderedDict()
+        self.hits = 0
+        self.misses = 0
+
+    def get(self, key: K) -> Optional[V]:
+        if key not in self._items:
+            self.misses += 1
+            return None
+        self._items.move_to_end(key)
+        self.hits += 1
+        return self._items[key]
+
+    def put(self, key: K, value: V) -> None:
+        if key in self._items:
+            self._items.move_to_end(key)
+        self._items[key] = value
+        if len(self._items) > self.capacity:
+            self._items.popitem(last=False)
+
+    @property
+    def hit_rate(self) -> float:
+        total = self.hits + self.misses
+        return self.hits / total if total else 0.0
+
+
+if __name__ == "__main__":
+    cache: LRUCache[str, int] = LRUCache(capacity=2)
+    cache.put("a", 1)
+    cache.put("b", 2)
+    cache.get("a")
+    cache.put("c", 3)  # evicts "b"
+    assert cache.get("b") is None
+    print(f"hit rate: {cache.hit_rate:.2f}")

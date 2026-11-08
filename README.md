@@ -1,0 +1,137 @@
+# kldrift
+
+**How much did quantization actually change your model?**
+
+`kldrift` runs the same text through a full-precision LLM and its quantized versions (GGUF via llama.cpp, MLX on Apple Silicon), compares the probability distributions **token by token**, and tells you which quant to download for *your* prompts and *your* machine. Everything runs locally: no API keys, no cloud, no telemetry.
+
+```
+$ kldrift compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K_M.gguf SmolLM2-135M-Q2_K.gguf --open
+
+  model                 size  of ref   KL mean    KL p99    top-1     ΔPPL decode t/s  quality
+  F16                 269 MB    100%         0         0     100%        0      101.2  reference
+  Q8_0 ◆              143 MB     53%    0.0042     0.032    95.7%   +0.46%      177.0  near-lossless
+  Q4_K_M ◆            104 MB     39%    0.0434     0.372    88.3%   +3.98%      191.0  excellent
+  Q2_K ◆               86 MB     32%    0.2258     1.754    74.1%  +20.68%      209.0  degraded
+  ◆ = Pareto-optimal (nothing else is both smaller and closer to the reference)
+  Q8_0 drifts most on russian (KL 0.0068)
+  Q4_K_M drifts most on russian (KL 0.0690)
+  Q2_K drifts most on russian (KL 0.3829)
+
+  → use Q8_0  (smallest model with mean KL < 0.05 and ≥ 90% top-1 agreement on your prompts)
+```
+
+## Why
+
+"Q4_K_M or 4-bit MLX?" gets asked constantly, and the answers are blog posts with contradictory numbers. Perplexity hides most of the damage: two models can have the same perplexity and still disagree on which token comes next. llama.cpp can measure KL divergence, but only GGUF against GGUF, on its own text, without telling you *where* a quant breaks.
+
+kldrift answers the questions that matter before you pick a quant:
+
+- **How far does it drift?** Mean, p99 and max KL divergence from the reference, per token.
+- **Does it still say the same thing?** Top-1 agreement, plus *confident flips*: positions where the original was more than 50% sure and the quant picked something else anyway.
+- **Where does it break first?** Breakdown by content type. In the run above every quant degrades about twice as fast on Russian text as on English or code, which is the kind of thing you only learn by measuring.
+- **What does it cost to run?** Prefill and decode speed, memory, and on Apple Silicon **energy per token** read from the SoC's own counters.
+- **Which one should I use?** The smallest quant that stays within your quality bar, plus the Pareto frontier of size vs. quality.
+
+## The report
+
+`--open` writes a single self-contained `report.html` (no CDN, works offline):
+
+- **Summary table** with quality tiers and the recommendation.
+- **Quality vs. size** scatter with the Pareto frontier.
+- **KL distribution** (CDF) per quant, so you can tell "slightly worse everywhere" apart from "fine except for rare catastrophes".
+- **By content type** bars: code, prose, math, other languages, structured data.
+- **Token explorer**: the actual text, each token tinted by how far the quant drifted there and underlined where the top token flipped. Hover any token to see the reference's top-5 next to the quant's top-5.
+- **Biggest disagreements**: the worst positions with their context.
+
+## Install
+
+```bash
+git clone https://github.com/Lyamon4/kldrift && cd kldrift
+cargo install --path .                    # macOS: Metal is used automatically
+cargo install --path . --features cuda    # Linux / Windows with an NVIDIA GPU
+```
+
+You need a Rust toolchain, CMake and a C/C++ compiler (llama.cpp is built from source). On Windows also set `LIBCLANG_PATH` (for example `pip install libclang`). For MLX models: `pip install mlx-lm`.
+
+## Usage
+
+Quick comparison from the command line (GGUF paths, or `mlx:<dir or hf-repo>` for MLX):
+
+```bash
+kldrift compare model-f16.gguf model-Q8_0.gguf model-Q4_K_M.gguf --open
+kldrift compare model-f16.gguf mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit model-Q4_K_M.gguf
+```
+
+Or describe the run in a config file (see [`examples/`](examples)):
+
+```bash
+kldrift run -c examples/smollm2.toml --open
+kldrift run -c examples/gguf-vs-mlx.toml --open   # GGUF vs MLX on Apple Silicon
+kldrift report kldrift-out/results.json --open    # re-render a saved run
+```
+
+Use your own prompts: put text files into `prompts/<category>/<name>.txt` and pass `--prompts`. The bundled set covers English prose, Russian prose, Rust and Python code, math, and JSON/tables/SQL/CSV.
+
+| flag | default | meaning |
+|---|---|---|
+| `--ctx` | 512 | tokens per evaluation window |
+| `--top-k` | 64 | reference tokens kept per position for the KL estimate |
+| `--max-tokens` | 1024 | cap per prompt file |
+| `--threads` | physical cores | llama.cpp CPU threads |
+| `--no-bench` | off | skip speed, memory and energy |
+| `--python` | `python3` | interpreter with `mlx-lm`, for MLX models |
+
+## How it works
+
+```
+                    ┌──────────────┐  top-k ids + log-probs per position
+  prompts ─tokens─▶ │  reference   │──────────────────────────────┐
+                    │  (F16 GGUF)  │                              │
+                    └──────────────┘                              ▼
+                    ┌──────────────┐  log-probs of those same ids  ┌──────────┐
+           same ──▶ │  quant #n    │─────────────────────────────▶│ metrics  │─▶ results.json
+           tokens   │ GGUF or MLX  │  + its own top-k              │ KL, flips│─▶ report.html
+                    └──────────────┘                               └──────────┘
+```
+
+1. **Teacher forcing.** Every prompt is tokenized once by the reference, and the *same token ids* go through every model, so positions line up exactly. kldrift refuses to compare models whose tokenizers disagree.
+2. **Coarsened KL.** At each position the reference keeps its top-k tokens (k = 64). Each quant reports its probabilities for exactly those tokens, and the rest of the vocabulary is pooled into one tail bucket on both sides. The KL divergence of these (k+1)-bucket distributions is, by the data-processing inequality, a **lower bound** on the full-vocabulary KL. It is tight in practice because the reference tail is tiny, and it means models never have to ship 150k-wide logit rows between processes.
+3. **Backends.**
+   - **llama.cpp**, in-process through [`llama-cpp-2`](https://crates.io/crates/llama-cpp-2): one batched decode per window with logits for every position, log-softmax and top-k in Rust.
+   - **MLX**, through a small Python worker embedded in the binary that speaks JSON lines over stdin/stdout.
+4. **Energy on Apple Silicon.** A small Objective-C module ([`objc/kld_mac.m`](objc/kld_mac.m)) subscribes to the `Energy Model` channels of IOReport, the same counters `powermetrics` reads, without needing root. It samples CPU, GPU, ANE and DRAM energy around the decode loop and subtracts an idle baseline measured at start-up. It also reads the process `phys_footprint` (which includes Metal buffers in unified memory) and the chip name.
+
+```
+src/
+  main.rs        CLI (compare / run / report)
+  runner.rs      pipeline: reference pass, candidate passes, benchmarks
+  metrics.rs     coarsened KL, top-1 agreement, confident flips, summaries
+  dist.rs        log-softmax + top-k from raw logits
+  backend/       llama.cpp (in-process) and MLX (worker) backends
+  sys.rs         machine info, IOReport energy meter (FFI)
+  report.rs      terminal table + HTML rendering
+objc/kld_mac.m   IOReport, phys_footprint, sysctl (macOS only)
+workers/         MLX worker (embedded with include_str!)
+assets/          report template (vanilla JS + SVG, no dependencies)
+```
+
+## Reading the numbers
+
+| tier | mean KL (nats) | what it usually means |
+|---|---|---|
+| near-lossless | < 0.01 | indistinguishable in practice |
+| excellent | < 0.05 | rare small wording changes |
+| noticeable | < 0.15 | visibly different outputs, reasoning may slip |
+| degraded | ≥ 0.15 | frequent wrong tokens, especially off-English |
+
+These thresholds are heuristics and can be changed in the `[thresholds]` section of a config. Compare quants of the *same* model on the *same* prompts. Absolute KL values are not comparable across model families.
+
+## Limitations
+
+- KL is measured under teacher forcing (scoring known text), not free generation. That makes runs exact and reproducible, but it does not capture errors compounding over long generations.
+- Energy is package-wide (the whole SoC), not per process. Close heavy apps for clean numbers.
+- IOReport is a private Apple interface. If a future macOS changes it, energy reporting switches off and everything else keeps working.
+
+## License
+
+MIT

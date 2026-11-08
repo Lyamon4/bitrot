@@ -1,0 +1,15 @@
+Problem 1. A train leaves a station at 9:00 and travels at 80 km/h. A second train leaves the same station at 10:30 on the same track and travels at 120 km/h. At what time does the second train catch up?
+
+Solution. By 10:30 the first train has been moving for 1.5 hours, so it is 80 × 1.5 = 120 km ahead. The second train closes the gap at 120 − 80 = 40 km/h. It needs 120 / 40 = 3 hours, so it catches up at 13:30.
+
+Problem 2. The sum of three consecutive even numbers is 78. Find the numbers.
+
+Solution. Let the numbers be n, n + 2 and n + 4. Then 3n + 6 = 78, so 3n = 72 and n = 24. The numbers are 24, 26 and 28. Check: 24 + 26 + 28 = 78.
+
+Problem 3. A rectangle has a perimeter of 46 cm and an area of 120 cm². Find its sides.
+
+Solution. Let the sides be a and b. Then a + b = 23 and ab = 120. So a and b are roots of x² − 23x + 120 = 0. The discriminant is 529 − 480 = 49, so x = (23 ± 7) / 2, which gives 15 and 8. The rectangle is 15 cm by 8 cm.
+
+Problem 4. What is 15% of 240, increased by one third?
+
+Solution. 15% of 240 is 0.15 × 240 = 36. One third of 36 is 12, so the answer is 36 + 12 = 48.

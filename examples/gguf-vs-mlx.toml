@@ -1,0 +1,38 @@
+# The interesting one: GGUF vs MLX quants of the same model, on an
+# Apple Silicon Mac. Needs `pip install mlx-lm` for the MLX candidates.
+#
+#   kldrift run -c examples/gguf-vs-mlx.toml --open
+#
+# MLX paths can be a local directory or a Hugging Face repo id
+# (downloaded on first use, no token needed for public repos).
+
+[settings]
+prompts = "../prompts"
+ctx = 512
+top_k = 64
+python = "python3"
+
+[reference]
+name = "F16 (gguf)"
+backend = "llama"
+path = "../models/Qwen2.5-1.5B-Instruct-f16.gguf"
+
+[[candidate]]
+name = "Q4_K_M (gguf)"
+backend = "llama"
+path = "../models/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"
+
+[[candidate]]
+name = "Q8_0 (gguf)"
+backend = "llama"
+path = "../models/Qwen2.5-1.5B-Instruct-Q8_0.gguf"
+
+[[candidate]]
+name = "4bit (mlx)"
+backend = "mlx"
+path = "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
+
+[[candidate]]
+name = "8bit (mlx)"
+backend = "mlx"
+path = "mlx-community/Qwen2.5-1.5B-Instruct-8bit"

@@ -1,0 +1,33 @@
+# kldrift run -c examples/smollm2.toml --open
+#
+# Paths are relative to this file. Get the models (free, ~600 MB):
+#   https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF
+
+[settings]
+prompts = "../prompts"
+ctx = 512
+top_k = 64
+max_tokens_per_doc = 1024
+bench_prompt_tokens = 256
+bench_gen_tokens = 64
+bench_repeats = 3
+
+[reference]
+name = "F16"
+backend = "llama"
+path = "../models/SmolLM2-135M-Instruct-f16.gguf"
+
+[[candidate]]
+name = "Q8_0"
+backend = "llama"
+path = "../models/SmolLM2-135M-Instruct-Q8_0.gguf"
+
+[[candidate]]
+name = "Q4_K_M"
+backend = "llama"
+path = "../models/SmolLM2-135M-Instruct-Q4_K_M.gguf"
+
+[[candidate]]
+name = "Q2_K"
+backend = "llama"
+path = "../models/SmolLM2-135M-Instruct-Q2_K.gguf"

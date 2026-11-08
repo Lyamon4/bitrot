@@ -1,0 +1,58 @@
+/// A fixed-capacity ring buffer.
+pub struct RingBuffer<T> {
+    buf: Vec<Option<T>>,
+    head: usize,
+    tail: usize,
+    len: usize,
+}
+
+impl<T> RingBuffer<T> {
+    pub fn with_capacity(capacity: usize) -> Self {
+        assert!(capacity > 0, "capacity must be positive");
+        let mut buf = Vec::with_capacity(capacity);
+        buf.resize_with(capacity, || None);
+        Self { buf, head: 0, tail: 0, len: 0 }
+    }
+
+    pub fn push(&mut self, value: T) -> Result<(), T> {
+        if self.len == self.buf.len() {
+            return Err(value);
+        }
+        self.buf[self.tail] = Some(value);
+        self.tail = (self.tail + 1) % self.buf.len();
+        self.len += 1;
+        Ok(())
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        let value = self.buf[self.head].take();
+        self.head = (self.head + 1) % self.buf.len();
+        self.len -= 1;
+        value
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wraps_around() {
+        let mut rb = RingBuffer::with_capacity(2);
+        assert!(rb.push(1).is_ok());
+        assert!(rb.push(2).is_ok());
+        assert_eq!(rb.push(3), Err(3));
+        assert_eq!(rb.pop(), Some(1));
+        assert!(rb.push(3).is_ok());
+        assert_eq!(rb.pop(), Some(2));
+        assert_eq!(rb.pop(), Some(3));
+        assert!(rb.is_empty());
+    }
+}

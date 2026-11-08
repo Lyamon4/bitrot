@@ -1,0 +1,10 @@
+We want the sum S = 1 + 2 + 3 + ... + n. Write the sum twice, once forwards and once backwards:
+
+S = 1 + 2 + ... + (n − 1) + n
+S = n + (n − 1) + ... + 2 + 1
+
+Adding the two lines term by term, every column sums to n + 1, and there are n columns. Therefore 2S = n(n + 1), and S = n(n + 1) / 2. For n = 100 this gives 100 × 101 / 2 = 5050.
+
+Next, consider the geometric series G = 1 + r + r² + ... + r^(n−1) with r ≠ 1. Multiply by r: rG = r + r² + ... + r^n. Subtracting, G − rG = 1 − r^n, so G = (1 − r^n) / (1 − r). If |r| < 1 and n grows without bound, r^n tends to 0 and the infinite sum equals 1 / (1 − r). For example, 1 + 1/2 + 1/4 + 1/8 + ... = 1 / (1 − 1/2) = 2.
+
+Finally, the derivative of f(x) = x² from first principles: f'(x) = lim_{h→0} ((x + h)² − x²) / h = lim_{h→0} (2xh + h²) / h = lim_{h→0} (2x + h) = 2x.

@@ -1,0 +1,5 @@
+Why does a bicycle stay upright? The popular answer is the gyroscopic effect of the spinning wheels, but experiments with bikes whose gyroscopic forces were cancelled out showed that they still balance themselves. The real story is mostly about steering geometry.
+
+When a moving bicycle starts to lean to one side, the front wheel tends to turn in the same direction. Turning into the lean moves the wheels back underneath the center of mass, which pushes the bike upright again. Two design features make this happen. The first is trail: the point where the front tire touches the ground sits behind the line of the steering axis, so the ground drags the wheel into alignment like a shopping cart caster. The second is the mass of the front assembly, which is positioned so that leaning makes it swing toward the low side.
+
+None of this works when the bike is standing still, which is why learning to ride feels impossible until you are moving fast enough. Above a certain speed, the bicycle corrects itself faster than it falls. The rider is still in charge of where it goes, but the machine quietly handles much of the balancing on its own.
