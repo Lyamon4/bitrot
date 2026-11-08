@@ -61,7 +61,9 @@ kldrift answers the questions that matter before you pick a quant:
 
 ## The report
 
-`--open` writes a single self-contained `report.html` (no CDN, works offline):
+`--open` writes a single self-contained `report.html` (no CDN, works offline, English and Russian with a switch). It is written for people who have never heard of KL divergence: it opens with the answer ("Download Q8_0"), explains in plain words what was measured, and keeps the technical detail in a collapsible section at the end.
+
+- **Your options**: one card per version with a plain verdict ("barely changed", "badly damaged"), its size, how often it picks the same next word, how many test answers it broke, and its speed.
 
 - **Summary table** with quality tiers and the recommendation.
 - **Quality vs. size** scatter with the Pareto frontier.

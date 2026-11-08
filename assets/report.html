@@ -6,434 +6,504 @@
 <title>kldrift report</title>
 <style>
 :root {
-  --bg: #f6f5f1; --panel: #ffffff; --ink: #17181c; --muted: #6b6e78; --line: #e4e2dc;
-  --accent: #0f766e; --warn: #b45309; --bad: #b91c1c; --good: #15803d;
-  --heat: 185, 28, 28; --chip: #efede7;
-  --c0: #2563eb; --c1: #d97706; --c2: #059669; --c3: #db2777; --c4: #7c3aed; --c5: #0891b2; --c6: #65a30d; --c7: #dc2626;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e0f12; --panel: #16181d; --ink: #e8e8ea; --muted: #8b8f9a; --line: #262931;
-    --accent: #2dd4bf; --warn: #f59e0b; --bad: #f87171; --good: #4ade80;
-    --heat: 248, 113, 113; --chip: #1f2229;
-    --c0: #60a5fa; --c1: #fbbf24; --c2: #34d399; --c3: #f472b6; --c4: #a78bfa; --c5: #22d3ee; --c6: #a3e635; --c7: #f87171;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0e0f12; --panel: #16181d; --ink: #e8e8ea; --muted: #8b8f9a; --line: #262931;
-  --accent: #2dd4bf; --warn: #f59e0b; --bad: #f87171; --good: #4ade80;
-  --heat: 248, 113, 113; --chip: #1f2229;
-  --c0: #60a5fa; --c1: #fbbf24; --c2: #34d399; --c3: #f472b6; --c4: #a78bfa; --c5: #22d3ee; --c6: #a3e635; --c7: #f87171;
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface-2: #171717;
+  --line: #242424;
+  --ink: #f2f2f0;
+  --ink-2: #c9c9c5;
+  --muted: #85857f;
+  /* quality scale: identical -> barely -> noticeably -> badly */
+  --q0: #f2f2f0;
+  --q1: #8ec5ff;
+  --q2: #f5a524;
+  --q3: #ff5a4f;
+  --heat: 255, 90, 79;
+  --s0: #f2f2f0; --s1: #9b9bff; --s2: #4fd1c5; --s3: #f0a6ca; --s4: #bef264; --s5: #93c5fd;
+  --sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
-main { max-width: 1120px; margin: 0 auto; padding: 40px 16px 80px; }
-h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0; }
-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 48px 0 14px; font-weight: 600; }
-.sub { color: var(--muted); margin-top: 6px; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
-.brand { font-family: var(--mono); color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; }
-.theme { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
-.facts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-.fact { background: var(--chip); border-radius: 999px; padding: 3px 11px; font-size: 13px; color: var(--muted); }
-.fact b { color: var(--ink); font-weight: 600; }
+.muted { color: var(--muted); }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 600px) { .wrap { padding: 0 16px; } }
 
-.verdict { margin-top: 28px; display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; border-left: 4px solid var(--good); }
-.verdict .big { font-family: var(--mono); font-size: 30px; font-weight: 700; color: var(--good); }
-.verdict p { margin: 2px 0 0; color: var(--muted); }
+/* ---------- hero ---------- */
+.hero { position: relative; min-height: min(88vh, 760px); background: #000; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid var(--line); }
+.hero .photo { position: absolute; top: 0; right: 0; bottom: 0; width: 68%; background: var(--hero) 38% 62% / cover no-repeat; }
+/* fade the photo's left edge into the black page so the text sits on black */
+.hero .photo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.85) 14%, rgba(0,0,0,0) 46%); }
+.hero > .wrap { position: relative; z-index: 1; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
+.brand { font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; font-size: 15px; }
+.brand span { color: var(--muted); font-weight: 400; }
+.lang { display: flex; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; overflow: hidden; }
+.lang button { background: none; border: 0; color: var(--muted); font: 600 13px var(--sans); padding: 6px 11px; cursor: pointer; }
+.lang button.on { background: var(--ink); color: #000; }
+.hero-text { padding: 9vh 0 64px; max-width: 470px; text-shadow: 0 1px 24px rgba(0,0,0,0.8); }
+.kicker { color: var(--ink-2); font-size: 18px; margin: 0 0 10px; }
+.hero h1 { font-size: clamp(48px, 7.4vw, 96px); line-height: 0.95; letter-spacing: -0.045em; margin: 0 0 22px; font-weight: 800; }
+.hero h1 .pick { font-family: var(--mono); letter-spacing: -0.06em; }
+.hero p.lead { font-size: 19px; color: var(--ink-2); margin: 0 0 10px; max-width: 540px; }
+.hero .meta { font-size: 13px; color: var(--muted); margin-top: 22px; }
+@media (max-width: 760px) {
+  .hero { min-height: 0; }
+  .hero .photo { position: relative; width: 100%; height: 64vw; order: 1; background-position: 45% 60%; }
+  .hero .photo::before { background: linear-gradient(0deg, #000 0%, rgba(0,0,0,0) 30%); }
+  .hero > .wrap { order: 2; }
+  .hero .topbar { position: absolute; top: calc(-64vw); left: 16px; right: 16px; }
+  .hero-text { padding: 8px 0 48px; max-width: none; }
+  .hero p.lead { font-size: 17px; }
+}
 
+/* ---------- sections ---------- */
+section { padding: 88px 0 0; }
+section > .wrap > h2 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 10px; font-weight: 750; }
+section > .wrap > p.intro { color: var(--ink-2); font-size: 17px; max-width: 680px; margin: 0 0 32px; }
+@media (max-width: 600px) { section { padding-top: 64px; } }
+
+/* how it works */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.step { background: var(--bg); padding: 22px 22px 24px; }
+.step .n { font-family: var(--mono); color: var(--muted); font-size: 13px; }
+.step h3 { margin: 6px 0 6px; font-size: 18px; letter-spacing: -0.01em; }
+.step p { margin: 0; color: var(--ink-2); font-size: 15px; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+
+/* options */
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 14px; }
+.opt { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; position: relative; }
+.opt.rec { border-color: var(--ink); }
+.opt .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.opt .name { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: -0.04em; }
+.opt .tag { font-size: 12px; font-weight: 700; color: #000; background: var(--ink); border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+.opt .tag.ref { background: none; color: var(--muted); border: 1px solid var(--line); font-weight: 600; }
+.opt .size { color: var(--ink-2); font-size: 14px; margin-top: 2px; }
+.sizebar { height: 4px; background: var(--surface-2); border-radius: 2px; margin: 10px 0 18px; overflow: hidden; }
+.sizebar i { display: block; height: 100%; background: var(--ink-2); }
+.opt .verdict { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+.opt ul { list-style: none; margin: 0; padding: 0; }
+.opt li { color: var(--ink-2); font-size: 15px; padding: 7px 0; border-top: 1px solid var(--line); }
+.opt li b { color: var(--ink); font-weight: 650; }
+
+/* bars */
+.bars { display: grid; gap: 22px; }
+.bargroup .label { font-weight: 650; margin-bottom: 8px; }
+.bar { display: grid; grid-template-columns: 110px 1fr 70px; align-items: center; gap: 12px; font-size: 14px; margin: 5px 0; }
+.bar .track { height: 10px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 3px; }
+.bar .v { text-align: right; color: var(--ink-2); }
+@media (max-width: 560px) { .bar { grid-template-columns: 80px 1fr 56px; } }
+.callout { border-left: 2px solid var(--q2); padding: 4px 0 4px 16px; color: var(--ink-2); margin: 0 0 28px; max-width: 680px; }
+.callout b { color: var(--ink); }
+
+/* explorer */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+select { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font: 15px var(--sans); max-width: 100%; }
+.legend { color: var(--muted); font-size: 13px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+.ramp { display: inline-block; width: 90px; height: 8px; border-radius: 4px; vertical-align: middle; background: linear-gradient(90deg, rgba(var(--heat),0.05), rgba(var(--heat),0.9)); }
+.u { box-shadow: inset 0 -2px 0 var(--q3); }
+.text { font-family: var(--mono); font-size: 14px; line-height: 2; white-space: pre-wrap; word-break: break-word; max-height: 460px; overflow-y: auto; padding-right: 6px; color: var(--ink-2); }
+.tok { border-radius: 3px; cursor: pointer; color: var(--ink); }
+.tok:empty { display: inline-block; min-width: 3px; height: 1.1em; vertical-align: -2px; }
+.tok.f2 { box-shadow: inset 0 -2px 0 var(--q3); }
+.tok.f1 { box-shadow: inset 0 -2px 0 rgba(245,165,36,0.7); }
+.tok:hover, .tok.sel { outline: 1.5px solid var(--ink); }
+.nl { color: var(--muted); opacity: 0.5; }
+
+#tip { position: fixed; z-index: 20; pointer-events: none; display: none; width: 380px; max-width: calc(100vw - 24px); background: #0d0d0d; border: 1px solid #333; border-radius: 10px; padding: 14px; font-size: 13px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
+#tip .t { font-weight: 650; margin-bottom: 8px; }
+#tip.term { width: 300px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.alt { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 4px 0; font-family: var(--mono); align-items: center; }
+.alt .w { white-space: pre; overflow: hidden; text-overflow: ellipsis; background: var(--surface-2); padding: 0 5px; border-radius: 3px; }
+.alt .w.hit { outline: 1px solid var(--ink-2); }
+.alt .p { color: var(--muted); font-size: 12px; }
+.alt .pb { grid-column: 1 / -1; height: 2px; background: var(--ink-2); opacity: 0.5; margin-top: -2px; }
+
+/* tasks */
+.tsum { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 26px; }
+.tcell { border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.tcell .big { font-family: var(--mono); font-size: 28px; font-weight: 700; letter-spacing: -0.04em; }
+.tcell .sub { color: var(--ink-2); font-size: 14px; }
+.stack { display: flex; height: 8px; border-radius: 3px; overflow: hidden; margin-top: 12px; background: var(--surface-2); }
+.qa { border-top: 1px solid var(--line); padding: 18px 0; }
+.qa .q { font-weight: 600; margin-bottom: 4px; }
+.qa .exp { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+.qa .ans { font-family: var(--mono); font-size: 13px; white-space: pre-wrap; word-break: break-word; color: var(--ink-2); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.qa .ans mark { background: rgba(var(--heat), 0.28); color: var(--ink); border-radius: 2px; }
+.qa .who { font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+.ok { color: var(--q1); } .bad { color: var(--q3); }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+
+/* luck */
+.claims { display: grid; gap: 10px; }
+.claim { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.chip { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 3px 8px; text-align: center; }
+.chip.sure { background: var(--ink); color: #000; }
+.chip.maybe { border: 1px solid var(--line); color: var(--muted); }
+@media (max-width: 560px) { .claim { grid-template-columns: 1fr; gap: 8px; } .chip { justify-self: start; } }
+.stab { display: flex; height: 34px; border-radius: 8px; overflow: hidden; margin-top: 12px; }
+.stab div { display: flex; align-items: center; justify-content: center; font: 600 13px var(--sans); color: #000; white-space: nowrap; overflow: hidden; }
+
+/* nerds */
+details.nerd { margin-top: 88px; border-top: 1px solid var(--line); }
+details.nerd > summary { list-style: none; cursor: pointer; padding: 28px 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; display: flex; justify-content: space-between; align-items: center; }
+details.nerd > summary::-webkit-details-marker { display: none; }
+details.nerd > summary::after { content: "+"; font-family: var(--mono); color: var(--muted); font-size: 26px; font-weight: 400; }
+details.nerd[open] > summary::after { content: "−"; }
+.nerd h3 { font-size: 18px; margin: 36px 0 6px; }
+.nerd .note { color: var(--muted); font-size: 14px; margin: 0 0 14px; max-width: 720px; }
+.scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th { text-align: right; font-weight: 500; color: var(--muted); font-size: 12px; padding: 0 10px 10px; white-space: nowrap; }
 td { text-align: right; padding: 10px; border-top: 1px solid var(--line); white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
-.scroll { overflow-x: auto; }
-.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: 0; }
-.tier { font-size: 12px; padding: 2px 9px; border-radius: 999px; font-weight: 600; }
-.t-near_lossless { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
-.t-excellent { background: color-mix(in srgb, var(--good) 10%, transparent); color: var(--good); }
-.t-noticeable { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
-.t-degraded { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
-.t-reference { background: var(--chip); color: var(--muted); }
-.pareto { color: var(--accent); font-size: 11px; margin-left: 6px; }
-.kbar { display: inline-block; height: 6px; border-radius: 3px; background: rgba(var(--heat), 0.85); vertical-align: middle; margin-left: 8px; }
-
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } .verdict { grid-template-columns: 1fr; } }
-.chart-title { font-weight: 600; margin: 0 0 2px; }
-.chart-note { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
 svg text { fill: var(--muted); font: 11px var(--sans); }
 svg .lbl { fill: var(--ink); font-weight: 600; }
-svg .axis { stroke: var(--line); }
 svg .grid { stroke: var(--line); stroke-dasharray: 2 4; }
+.method { color: var(--ink-2); font-size: 14px; max-width: 760px; }
+.method code { font-family: var(--mono); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
-.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
-select { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 14px; max-width: 100%; }
-.legend { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; margin-left: auto; }
-.ramp { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(var(--heat), 0.04), rgba(var(--heat), 0.9)); }
-.text { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; white-space: pre-wrap; word-break: break-word; max-height: 520px; overflow-y: auto; padding-right: 6px; }
-.tok { border-radius: 3px; cursor: default; }
-.tok:empty { display: inline-block; min-width: 3px; height: 1.1em; vertical-align: -2px; }
-.tok.f1 { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--warn) 70%, transparent); }
-.tok.f2 { box-shadow: inset 0 -2px 0 var(--bad); }
-.tok:hover { outline: 1.5px solid var(--ink); }
-.nl { color: var(--muted); opacity: 0.5; }
-#tip { position: fixed; pointer-events: none; z-index: 10; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); font-size: 12.5px; width: 380px; max-width: calc(100vw - 24px); display: none; }
-.tipgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
-.alt { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; margin: 3px 0; font-family: var(--mono); }
-.alt .w { white-space: pre; overflow: hidden; text-overflow: ellipsis; background: var(--chip); padding: 0 4px; border-radius: 3px; }
-.alt .w.hit { outline: 1px solid var(--accent); }
-.alt .p { color: var(--muted); font-size: 11.5px; }
-.pbar { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: var(--accent); opacity: 0.7; margin-top: -2px; }
-.muted { color: var(--muted); }
-
-.worst { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-.wcard { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 13px; }
-.wcard .ctx { font-family: var(--mono); font-size: 12.5px; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
-.wcard .ctx mark { background: rgba(var(--heat), 0.25); color: var(--ink); border-radius: 3px; padding: 0 2px; }
-.wcard .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-footer { margin-top: 56px; color: var(--muted); font-size: 13px; line-height: 1.6; }
-footer code { font-family: var(--mono); background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.term { border-bottom: 1px dotted var(--muted); cursor: help; }
+footer { padding: 64px 0 72px; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
-<main id="app"></main>
+<div id="app"></div>
 <div id="tip"></div>
 <script>
 const DATA = /*__KLDRIFT_DATA__*/null;
+const HERO = "__KLDRIFT_HERO__";
 
+// ---------------------------------------------------------------- language
+const STR = {
+  en: {
+    kicker: "Which version of {model} should you use?",
+    download: "Download",
+    lead_pick: "It's {size} of the original's size and picks the same next word as the original {top1} of the time.",
+    lead_stable: "It came out on top in {s} of 1,000 reshuffles of the test data, so this isn't a fluke.",
+    lead_close: "But it only won {s} of 1,000 reshuffles of the test data, so treat it as a close call.",
+    meta: "Tested on {tokens} tokens of text{tasks} · {chip} · {date}",
+    meta_tasks: " and {n} questions",
+    how_title: "How this works",
+    how_intro: "You can't tell how much a {quant} lost just by looking at it. So we ask it.",
+    s1t: "Same input", s1: "The original model and every smaller version read the exact same text and questions.",
+    s2t: "Word by word", s2: "At every {token} we compare what each one expected to come next. The more the guesses differ, the more that version has drifted.",
+    s3t: "Real answers", s3: "Each version also answers questions with known answers, so we see whether the drift actually changes what it says.",
+    s3t_no: "Speed and size", s3_no: "We also time each version and weigh it, so you see what you gain for what you lose.",
+    opts_title: "Your options",
+    opts_intro: "Smaller versions are faster and use less memory, but drift further from the original. Here's what each one costs you.",
+    original: "original", pick: "our pick",
+    of_orig: "{size} · {pct} of the original",
+    q_near_lossless: "Practically identical", q_excellent: "Barely changed", q_noticeable: "Noticeably changed", q_degraded: "Badly damaged",
+    q_ref: "The full-size original",
+    same_word: "Picks the <b>same next word</b> as the original <b>{p}</b> of the time.",
+    tasks_line: "Got <b>{c} of {n}</b> test questions right (original: {rc}).",
+    broke: "Got <b>{b}</b> wrong that the original got right.",
+    broke0: "Didn't get a single one wrong that the original got right.",
+    p_change: "Expect roughly <b>{p}</b> of its answers to come out different.",
+    speed: "Writes <b>{x}</b> {tokens}/s{rel}.",
+    faster: ", {r}× the original", slower: ", {r}× slower than the original",
+    ref_line1: "This is what everything else is compared to.",
+    ref_line2: "Got <b>{c} of {n}</b> test questions right.",
+    energy: "Uses <b>{e} mJ</b> of energy per token.",
+    where_title: "Where it breaks first",
+    where_intro: "Compression rarely hurts everything equally. Longer bar = more drift on that kind of text.",
+    where_call: "Every version drifts most on <b>{cat}</b>. If that's what you use the model for, lean towards a bigger version.",
+    where_call_mixed: "Different versions struggle with different things. Check the kind of text you care about.",
+    see_title: "See it for yourself",
+    see_intro: "The text below is shaded by how much {cand} disagreed with the original at each word. Underlined: it would have written a different word. Hover or tap any word to compare their top guesses.",
+    legend_shade: "more disagreement", legend_line: "different word",
+    tip_word: "next word", tip_ref: "original expected", tip_cand: "{cand} expected", tip_flip: "would write a different word", tip_flip2: "different word, although the original was sure",
+    tasks_title: "Test questions",
+    tasks_intro: "Every version answered the same {n} questions with known answers (math, facts, code, Russian). Here's where the answers changed.",
+    correct_of: "{c}/{n} correct", same_text: "{p} word-for-word the same as the original",
+    filter_changed: "answer became right/wrong", filter_diff: "any different text", filter_all: "all questions",
+    showing: "{k} of {n}",
+    expected: "expected answer",
+    right: "right", wrong: "wrong",
+    none_changed: "Nothing here: this version got exactly the same questions right and wrong as the original.",
+    stack_same: "same text", stack_reworded: "reworded, same result", stack_fixed: "now right", stack_broken: "now wrong",
+    luck_title: "Is it just luck?",
+    luck_intro: "With a limited test set some differences are noise. We reshuffled the data 1,000 times and checked which conclusions survive.",
+    sure: "certain", maybe: "could be luck",
+    c_worse: "<b>{s}</b> is clearly worse than <b>{l}</b>: it drifts more and gets more answers wrong.",
+    c_drift_only: "<b>{s}</b> drifts more than <b>{l}</b>, that part is certain. Whether its answers are actually worse can't be told from {n} questions yet.",
+    c_drift: "<b>{s}</b> drifts more than <b>{l}</b>.",
+    c_better: "<b>{s}</b> drifts more than <b>{l}</b>, yet answered more questions right on this set.",
+    c_same: "<b>{s}</b> and <b>{l}</b> are indistinguishable on this data. Take the smaller one.",
+    stab_title: "How often each version would be our pick, across 1,000 reshuffles:",
+    nerd: "For the nerds: every number, chart and the method",
+    n_table: "Full numbers", n_ci: "Confidence intervals (95%)", n_size: "Quality vs size", n_cdf: "How drift is distributed", n_cal: "Calibration: how much drift changes an answer", n_worst: "Biggest disagreements", n_method: "Method",
+    n_size_note: "Lower = closer to the original. The line joins the versions that nothing else beats on both size and quality.",
+    n_cdf_note: "Share of tokens with KL at most x. A curve further left means fewer surprises.",
+    n_cal_note: "Each dot is one answer by one version: its KL on the original's answer and whether its own answer changed. The curve is a logistic fit; the quality labels in this report sit where it crosses {levels}.",
+    footer: "Generated by kldrift {v}. Everything ran locally on this machine. No data left it.",
+    terms: {
+      quant: ["quantized version", "A compressed copy of the model. Its numbers are stored with fewer bits, so it's smaller and faster but a bit less precise."],
+      token: ["token", "A piece of text the model reads and writes, roughly ¾ of a word."],
+      kl: ["KL divergence", "A number for how different two sets of guesses are. 0 means identical; bigger means further apart."],
+    },
+    cats: { english: "English text", russian: "Russian text", code: "code", math: "math", structured: "tables & JSON", arithmetic: "arithmetic", facts: "general knowledge", general: "general text" },
+  },
+  ru: {
+    kicker: "Какую версию {model} выбрать?",
+    download: "Качай",
+    lead_pick: "Она весит {size} от оригинала и в {top1} случаев выбирает то же следующее слово, что и оригинал.",
+    lead_stable: "Она победила в {s} из 1000 перетасовок данных, так что это не случайность.",
+    lead_close: "Но победила только в {s} из 1000 перетасовок данных, так что это почти ничья.",
+    meta: "Проверено на {tokens} токенах текста{tasks} · {chip} · {date}",
+    meta_tasks: " и {n} вопросах",
+    how_title: "Как это работает",
+    how_intro: "По файлу не видно, сколько {quant} потеряла. Поэтому мы её спрашиваем.",
+    s1t: "Одинаковый вход", s1: "Оригинал и каждая уменьшенная версия читают один и тот же текст и одни и те же вопросы.",
+    s2t: "Слово за словом", s2: "На каждом {token} сравниваем, какое продолжение ждала каждая модель. Чем сильнее расходятся догадки, тем дальше версия «уехала» от оригинала.",
+    s3t: "Настоящие ответы", s3: "Ещё каждая версия отвечает на вопросы с известным ответом, и видно, меняет ли это расхождение то, что она говорит.",
+    s3t_no: "Скорость и размер", s3_no: "Ещё мы замеряем скорость и размер, чтобы было видно, что вы получаете взамен.",
+    opts_title: "Варианты",
+    opts_intro: "Чем меньше версия, тем она быстрее и легче, но тем дальше от оригинала. Вот чего стоит каждая.",
+    original: "оригинал", pick: "наш выбор",
+    of_orig: "{size} · {pct} от оригинала",
+    q_near_lossless: "Практически как оригинал", q_excellent: "Почти не изменилась", q_noticeable: "Заметно изменилась", q_degraded: "Сильно испорчена",
+    q_ref: "Полноразмерный оригинал",
+    same_word: "В <b>{p}</b> случаев выбирает <b>то же следующее слово</b>, что и оригинал.",
+    tasks_line: "Ответила правильно на <b>{c} из {n}</b> проверочных вопросов (оригинал: {rc}).",
+    broke: "Ошиблась в <b>{b}</b>, где оригинал ответил верно.",
+    broke0: "Не ошиблась ни в одном вопросе, где оригинал ответил верно.",
+    p_change: "Примерно <b>{p}</b> её ответов будут отличаться от оригинала.",
+    speed: "Пишет <b>{x}</b> {tokens}/с{rel}.",
+    faster: ", в {r}× быстрее оригинала", slower: ", в {r}× медленнее оригинала",
+    ref_line1: "С ней сравниваются все остальные.",
+    ref_line2: "Ответила правильно на <b>{c} из {n}</b> проверочных вопросов.",
+    energy: "Тратит <b>{e} мДж</b> энергии на токен.",
+    where_title: "Где ломается первым",
+    where_intro: "Сжатие почти никогда не бьёт по всему одинаково. Длиннее полоска = сильнее расхождение на таком тексте.",
+    where_call: "Все версии сильнее всего «плывут» здесь: <b>{cat}</b>. Если модель нужна именно для этого, берите версию побольше.",
+    where_call_mixed: "Разные версии ломаются на разном. Смотрите на тот тип текста, который нужен вам.",
+    see_title: "Посмотрите сами",
+    see_intro: "Текст ниже подсвечен по тому, насколько {cand} не согласилась с оригиналом на каждом слове. Подчёркнуто: она написала бы другое слово. Наведите или нажмите на слово, чтобы сравнить их догадки.",
+    legend_shade: "сильнее расхождение", legend_line: "другое слово",
+    tip_word: "следующее слово", tip_ref: "оригинал ждал", tip_cand: "{cand} ждала", tip_flip: "написала бы другое слово", tip_flip2: "другое слово, хотя оригинал был уверен",
+    tasks_title: "Проверочные вопросы",
+    tasks_intro: "Каждая версия ответила на одни и те же {n} вопросов с известным ответом (математика, факты, код, русский). Вот где ответы изменились.",
+    correct_of: "{c}/{n} верно", same_text: "{p} ответов слово в слово как у оригинала",
+    filter_changed: "ответ стал верным/неверным", filter_diff: "любой другой текст", filter_all: "все вопросы",
+    showing: "{k} из {n}",
+    expected: "правильный ответ",
+    right: "верно", wrong: "неверно",
+    none_changed: "Здесь пусто: эта версия ответила верно и неверно ровно на те же вопросы, что и оригинал.",
+    stack_same: "тот же текст", stack_reworded: "другими словами, итог тот же", stack_fixed: "стало верно", stack_broken: "стало неверно",
+    luck_title: "Может, это случайность?",
+    luck_intro: "Когда тестов немного, часть разницы бывает шумом. Мы 1000 раз перетасовали данные и проверили, какие выводы выдерживают.",
+    sure: "точно", maybe: "может быть шум",
+    c_worse: "<b>{s}</b> точно хуже <b>{l}</b>: отклоняется сильнее и чаще ошибается.",
+    c_drift_only: "<b>{s}</b> отклоняется сильнее, чем <b>{l}</b>, это точно. А хуже ли её ответы, по {n} вопросам пока сказать нельзя.",
+    c_drift: "<b>{s}</b> отклоняется сильнее, чем <b>{l}</b>.",
+    c_better: "<b>{s}</b> отклоняется сильнее, чем <b>{l}</b>, но на этом наборе ответила правильно на большее число вопросов.",
+    c_same: "<b>{s}</b> и <b>{l}</b> на этих данных неотличимы. Берите ту, что меньше.",
+    stab_title: "Как часто каждая версия становилась нашим выбором за 1000 перетасовок:",
+    nerd: "Для гиков: все цифры, графики и методика",
+    n_table: "Все цифры", n_ci: "Доверительные интервалы (95%)", n_size: "Качество и размер", n_cdf: "Как распределено расхождение", n_cal: "Калибровка: сколько расхождения меняет ответ", n_worst: "Самые сильные расхождения", n_method: "Методика",
+    n_size_note: "Ниже = ближе к оригиналу. Линия соединяет версии, которые никто не обгоняет сразу и по размеру, и по качеству.",
+    n_cdf_note: "Доля токенов с KL не больше x. Чем левее кривая, тем меньше сюрпризов.",
+    n_cal_note: "Каждая точка: один ответ одной версии, её KL на ответе оригинала и изменился ли её собственный ответ. Кривая: логистическая регрессия; уровни качества в отчёте стоят там, где она пересекает {levels}.",
+    footer: "Сделано kldrift {v}. Всё считалось локально на этом компьютере, данные никуда не уходили.",
+    terms: {
+      quant: ["сжатая версия", "Уменьшенная копия модели: её числа хранятся в меньшем количестве бит, поэтому она легче и быстрее, но чуть менее точная."],
+      token: ["токен", "Кусочек текста, который модель читает и пишет, примерно ¾ слова."],
+      kl: ["KL-дивергенция", "Число, показывающее, насколько различаются два набора догадок. 0 — одинаковые, больше — дальше друг от друга."],
+    },
+    cats: { english: "английский текст", russian: "русский текст", code: "код", math: "математика", structured: "таблицы и JSON", arithmetic: "арифметика", facts: "общие знания", general: "общий текст" },
+  },
+};
+let lang = "en";
+try { lang = localStorage.getItem("kldrift-lang") || ((navigator.language || "").toLowerCase().startsWith("ru") ? "ru" : "en"); } catch (e) {}
+const T = (k, v = {}) => String(STR[lang][k] ?? STR.en[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? "");
+const term = k => `<span class="term" data-term="${k}">${STR[lang].terms[k][0]}</span>`;
+const cat = c => STR[lang].cats[c] || c;
+
+// ---------------------------------------------------------------- helpers
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const color = i => `var(--c${i % 8})`;
+const series = i => `var(--s${i % 6})`;
+const QCOL = { near_lossless: "var(--q0)", excellent: "var(--q1)", noticeable: "var(--q2)", degraded: "var(--q3)" };
 const gb = b => b >= 1e9 ? (b / 1e9).toFixed(2) + " GB" : (b / 1e6).toFixed(0) + " MB";
-const pct = (x, d = 1) => (x * 100).toFixed(d) + "%";
+const pct = (x, d = 1) => (x * 100).toFixed(d).replace(/\.0$/, "") + "%";
 const fmtKL = x => x < 0.001 ? x.toExponential(1) : x.toFixed(4);
-const TIER = { near_lossless: "near-lossless", excellent: "excellent", noticeable: "noticeable", degraded: "degraded" };
-const showPiece = s => s.replace(/\n/g, "↵").replace(/\t/g, "⇥") || "‹partial char›";
-function niceTicks(max, n = 4) {
-  const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
-  const t = []; for (let v = 0; v <= max + 1e-9; v += step) t.push(v);
-  return t;
+const num = n => n.toLocaleString(lang === "ru" ? "ru-RU" : "en-US");
+const showPiece = s => s.replace(/\n/g, "↵").replace(/\t/g, "⇥") || "·";
+const nice = n => n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2);
+
+function modelName(D) {
+  const base = (D.reference.spec.path.split(/[\\/]/).pop() || D.reference.spec.name).replace(/\.gguf$/i, "");
+  const tag = D.reference.spec.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return base.replace(new RegExp("[-_.]?" + tag + "$", "i"), "") || base;
 }
 
-function nice(n) { return n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2); }
-
+// ---------------------------------------------------------------- render
 function render() {
-  const D = DATA, R = D.reference, C = D.candidates;
+  const D = DATA, R = D.reference, C = D.candidates, TK = D.tasks, ST = D.stats;
+  document.documentElement.lang = lang;
   const ref = R.info.size_bytes || 1;
-  const anyBench = [R, ...C.map(c => c.model)].some(m => m.bench);
-  const energy = D.energy_available && [R, ...C.map(c => c.model)].some(m => m.bench && m.bench.energy_mj_per_tok != null);
-  const rec = D.recommendation;
-  const recC = rec && C.find(c => c.model.spec.name === rec.name);
+  const rec = D.recommendation && C.find(c => c.model.spec.name === D.recommendation.name);
+  const stab = ST && rec ? (ST.stability.find(x => x[0] === rec.model.spec.name) || [0, 0])[1] : null;
+  const tsum = n => TK && TK.summary[n];
+  const refT = TK && TK.summary[R.spec.name];
+  const model = modelName(D);
+  const tokens = C[0] ? C[0].summary.n_tokens : 0;
 
-  let h = `
-  <header>
-    <div>
-      <div class="brand">KLDRIFT · v${esc(D.version)}</div>
-      <h1>How far do the quants drift from ${esc(R.spec.name)}?</h1>
-      <div class="sub">${C.length} quantized version${C.length > 1 ? "s" : ""} compared token-by-token against the reference on ${D.docs.length} prompts</div>
-      <div class="facts">
-        <span class="fact"><b>${esc(D.machine.chip || D.machine.arch)}</b></span>
-        ${D.machine.memory_bytes ? `<span class="fact"><b>${gb(D.machine.memory_bytes)}</b> memory</span>` : ""}
-        <span class="fact">${esc(D.machine.os)}</span>
-        <span class="fact"><b>${(C[0] ? C[0].summary.n_tokens : 0).toLocaleString()}</b> tokens scored</span>
-        <span class="fact">ctx <b>${D.settings.ctx}</b> · top-k <b>${D.settings.top_k}</b></span>
-        <span class="fact">${esc(D.created)}</span>
-      </div>
-    </div>
-    <button class="theme" id="theme">◐ theme</button>
-  </header>`;
-
-  if (recC) {
-    h += `<div class="panel verdict">
-      <div class="big">${esc(rec.name)}</div>
-      <div><b>Use this one.</b>${D.stats ? (() => { const st = D.stats.stability.find(x => x[0] === rec.name); return st ? ` <span class="tier ${st[1] >= 0.8 ? "t-near_lossless" : "t-noticeable"}">same pick in ${pct(st[1], 0)} of resamples</span>` : ""; })() : ""}
-      ${gb(recC.model.info.size_bytes)} (${pct(recC.model.info.size_bytes / ref, 0)} of the reference),
-      mean KL ${fmtKL(recC.summary.kl_mean)}, picks the same next token as the reference ${pct(recC.summary.top1_agreement)} of the time.
-      <p>${esc(rec.reason)}</p></div></div>`;
+  let h = `<header class="hero" style="--hero:url('${HERO}')"><div class="photo"></div><div class="wrap" style="width:100%">
+    <div class="topbar"><div class="brand">kldrift <span>v${esc(D.version)}</span></div>
+      <div class="lang"><button data-l="en" class="${lang === "en" ? "on" : ""}">EN</button><button data-l="ru" class="${lang === "ru" ? "on" : ""}">RU</button></div></div>
+    <div class="hero-text">
+      <p class="kicker">${T("kicker", { model: esc(model) })}</p>`;
+  if (rec) {
+    h += `<h1>${T("download")} <span class="pick">${esc(rec.model.spec.name)}</span></h1>
+      <p class="lead">${T("lead_pick", { size: pct(rec.model.info.size_bytes / ref, 0), top1: pct(rec.summary.top1_agreement) })}</p>
+      ${stab != null ? `<p class="lead">${T(stab >= 0.8 ? "lead_stable" : "lead_close", { s: pct(stab, 0) })}</p>` : ""}`;
   }
+  h += `<p class="meta">${T("meta", { tokens: num(tokens), tasks: TK ? T("meta_tasks", { n: TK.items.length }) : "", chip: esc(D.machine.chip || D.machine.arch), date: esc(D.created) })}</p>
+    </div></div></header>`;
 
-  // ---- summary table ----
-  h += `<h2>Summary</h2><div class="panel scroll"><table><thead><tr>
-    <th>model</th><th>size</th><th>KL mean</th><th>KL p99</th><th>top-1 agree</th><th>confident flips</th><th>PPL</th>
-    ${anyBench ? "<th>prefill t/s</th><th>decode t/s</th><th>memory</th>" : ""}
-    ${energy ? "<th>energy / token</th>" : ""}<th>quality</th></tr></thead><tbody>`;
-  const maxKL = Math.max(...C.map(c => c.summary.kl_mean), 1e-9);
-  const benchCells = m => anyBench ? (m.bench
-      ? `<td class="mono">${nice(m.bench.prefill_tok_s)}</td><td class="mono">${nice(m.bench.decode_tok_s)}</td><td class="mono">${m.bench.mem_bytes ? gb(m.bench.mem_bytes) : "–"}</td>`
-      : "<td>–</td><td>–</td><td>–</td>") : "";
-  const energyCell = m => energy ? `<td class="mono">${m.bench && m.bench.energy_mj_per_tok != null ? m.bench.energy_mj_per_tok.toFixed(1) + " mJ" : "–"}</td>` : "";
-  h += `<tr><td><span class="swatch" style="background:var(--muted)"></span><b>${esc(R.spec.name)}</b></td>
-    <td class="mono">${gb(R.info.size_bytes)}</td><td class="mono muted">0</td><td class="mono muted">0</td><td class="mono muted">100%</td><td class="mono muted">0</td>
-    <td class="mono">${R.ppl.toFixed(3)}</td>${benchCells(R)}${energyCell(R)}<td><span class="tier t-reference">reference</span></td></tr>`;
-  C.forEach((c, i) => {
-    const s = c.summary;
-    h += `<tr><td><span class="swatch" style="background:${color(i)}"></span><b>${esc(c.model.spec.name)}</b>${c.pareto ? '<span class="pareto" title="Pareto-optimal: nothing else is both smaller and closer">◆ pareto</span>' : ""}</td>
-      <td class="mono">${gb(c.model.info.size_bytes)} <span class="muted">${pct(c.model.info.size_bytes / ref, 0)}</span></td>
-      <td class="mono">${fmtKL(s.kl_mean)}<span class="kbar" style="width:${Math.max(2, 60 * s.kl_mean / maxKL)}px"></span></td>
-      <td class="mono">${s.kl_p99.toFixed(3)}</td>
-      <td class="mono">${pct(s.top1_agreement)}</td>
-      <td class="mono">${s.confident_flips}</td>
-      <td class="mono">${s.ppl_cand.toFixed(3)} <span class="muted">${s.ppl_delta_pct >= 0 ? "+" : ""}${s.ppl_delta_pct.toFixed(2)}%</span></td>
-      ${benchCells(c.model)}${energyCell(c.model)}
-      <td><span class="tier t-${c.tier}">${TIER[c.tier]}</span></td></tr>`;
+  // how it works
+  h += `<section><div class="wrap"><h2>${T("how_title")}</h2><p class="intro">${T("how_intro", { quant: term("quant") })}</p>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>${T("s1t")}</h3><p>${T("s1")}</p></div>
+      <div class="step"><div class="n">02</div><h3>${T("s2t")}</h3><p>${T("s2", { token: term("token") })}</p></div>
+      <div class="step"><div class="n">03</div><h3>${TK ? T("s3t") : T("s3t_no")}</h3><p>${TK ? T("s3") : T("s3_no")}</p></div>
+    </div></div></section>`;
+
+  // options
+  const speed = m => m.bench ? m.bench.decode_tok_s : null;
+  const refSpeed = speed(R);
+  h += `<section><div class="wrap"><h2>${T("opts_title")}</h2><p class="intro">${T("opts_intro")}</p><div class="opts">`;
+  h += `<div class="opt"><div class="head"><span class="name">${esc(R.spec.name)}</span><span class="tag ref">${T("original")}</span></div>
+    <div class="size">${T("of_orig", { size: gb(R.info.size_bytes), pct: "100%" })}</div><div class="sizebar"><i style="width:100%"></i></div>
+    <div class="verdict">${T("q_ref")}</div><ul><li>${T("ref_line1")}</li>
+    ${refT ? `<li>${T("ref_line2", { c: refT.correct, n: refT.n })}</li>` : ""}
+    ${refSpeed ? `<li>${T("speed", { x: nice(refSpeed), tokens: term("token"), rel: "" })}</li>` : ""}</ul></div>`;
+  const pc = c => D.calibration ? 1 / (1 + Math.exp(-(D.calibration.a + D.calibration.b * Math.log(Math.max(c.summary.kl_mean, 1e-6))))) : null;
+  [...C].sort((a, b) => b.model.info.size_bytes - a.model.info.size_bytes).forEach(c => {
+    const s = c.summary, t = tsum(c.model.spec.name), sp = speed(c.model), p = pc(c);
+    let rel = "";
+    if (sp && refSpeed) { const r = sp / refSpeed; rel = r >= 1.05 ? T("faster", { r: r.toFixed(1) }) : r <= 0.95 ? T("slower", { r: (1 / r).toFixed(1) }) : ""; }
+    h += `<div class="opt ${rec === c ? "rec" : ""}"><div class="head"><span class="name">${esc(c.model.spec.name)}</span>${rec === c ? `<span class="tag">${T("pick")}</span>` : ""}</div>
+      <div class="size">${T("of_orig", { size: gb(c.model.info.size_bytes), pct: pct(c.model.info.size_bytes / ref, 0) })}</div>
+      <div class="sizebar"><i style="width:${Math.min(100, c.model.info.size_bytes / ref * 100)}%"></i></div>
+      <div class="verdict" style="color:${QCOL[c.tier]}">${T("q_" + c.tier)}</div><ul>
+      <li>${T("same_word", { p: pct(s.top1_agreement) })}</li>
+      ${t ? `<li>${T("tasks_line", { c: t.correct, n: t.n, rc: refT.correct })} ${t.regressions ? T("broke", { b: t.regressions }) : T("broke0")}</li>` : ""}
+      ${p != null ? `<li>${T("p_change", { p: pct(p, 0) })}</li>` : ""}
+      ${sp ? `<li>${T("speed", { x: nice(sp), tokens: term("token"), rel })}</li>` : ""}
+      ${c.model.bench && c.model.bench.energy_mj_per_tok != null ? `<li>${T("energy", { e: c.model.bench.energy_mj_per_tok.toFixed(1) })}</li>` : ""}
+      </ul></div>`;
   });
-  h += `</tbody></table></div>`;
+  h += `</div></div></section>`;
 
-  // ---- uncertainty ----
-  const ST = D.stats;
-  if (ST) {
-    const ciKL = i => `${fmtKL(i.est)} <span class="muted">[${fmtKL(i.lo)} – ${fmtKL(i.hi)}]</span>`;
-    const ciP = i => `${pct(i.est)} <span class="muted">[${pct(i.lo)} – ${pct(i.hi)}]</span>`;
-    const sig = i => i.lo > 0 || i.hi < 0
-      ? '<span class="tier t-degraded">real difference</span>'
-      : '<span class="tier t-reference">could be noise</span>';
-    const diff = (i, f) => `${f(i.est)} <span class="muted">[${f(i.lo)}, ${f(i.hi)}]</span>`;
-    const sKL = v => (v >= 0 ? "+" : "") + fmtKL(Math.abs(v)).replace(/^/, v < 0 ? "−" : "");
-    const sP = v => (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(0) + "%";
-    h += `<h2>How sure are we?</h2><div class="panel">
-      <p class="chart-title">${pct(ST.level, 0)} bootstrap intervals</p>
-      <p class="chart-note">${ST.replicates} resamples of the data: prompt tokens in blocks of ${ST.block_tokens} (neighbouring tokens are not independent), tasks one by one.
-      All quants are measured on the same resample, so comparisons are paired. A difference whose interval excludes zero is unlikely to be noise.</p>
-      <div class="scroll"><table><thead><tr><th>model</th><th>KL mean</th><th>top-1 agree</th>${ST.candidates[0] && ST.candidates[0].accuracy ? "<th>correct answers</th>" : ""}${ST.candidates[0] && ST.candidates[0].p_change ? "<th>answers expected to change</th>" : ""}</tr></thead><tbody>
-      ${ST.candidates.map((c, i) => `<tr><td><span class="swatch" style="background:${color(i)}"></span><b>${esc(c.name)}</b></td><td class="mono">${ciKL(c.kl_mean)}</td><td class="mono">${ciP(c.top1)}</td>${c.accuracy ? `<td class="mono">${ciP(c.accuracy)}</td>` : ""}${c.p_change ? `<td class="mono">${ciP(c.p_change)}</td>` : ""}</tr>`).join("")}
-      </tbody></table></div>
-      <p class="chart-title" style="margin-top:22px">Is the smaller quant really worse?</p>
-      <div class="scroll"><table><thead><tr><th>comparison</th><th>Δ KL mean</th><th></th>${ST.pairs[0] && ST.pairs[0].acc_diff ? "<th>Δ correct answers</th><th></th>" : ""}</tr></thead><tbody>
-      ${ST.pairs.map(p => `<tr><td><b>${esc(p.smaller)}</b> <span class="muted">vs</span> <b>${esc(p.larger)}</b></td><td class="mono">${diff(p.kl_diff, sKL)}</td><td>${sig(p.kl_diff)}</td>${p.acc_diff ? `<td class="mono">${diff(p.acc_diff, sP)}</td><td>${sig(p.acc_diff)}</td>` : ""}</tr>`).join("")}
-      </tbody></table></div>
-      <p class="chart-title" style="margin-top:22px">How stable is the recommendation?</p>
-      <p class="chart-note">The whole decision, including re-fitting the calibrated tiers, re-run on every resample.</p>
-      <div style="display:flex;border-radius:6px;overflow:hidden;height:26px">${ST.stability.map(([n, f]) => {
-        const i = C.findIndex(c => c.model.spec.name === n);
-        return `<div title="${esc(n)}: ${pct(f)}" style="width:${f * 100}%;background:${i >= 0 ? color(i) : "var(--line)"};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap">${f > 0.08 ? `${esc(n)} ${pct(f, 0)}` : ""}</div>`;
-      }).join("")}</div>
-      ${ST.kl_at ? `<div class="facts" style="margin-top:14px">${["near-lossless", "excellent", "noticeable"].map((t, i) => `<span class="fact">${t} below <b class="mono">KL ${fmtKL(ST.kl_at[i].est)}</b> <span class="mono">[${fmtKL(ST.kl_at[i].lo)} – ${fmtKL(ST.kl_at[i].hi)}]</span></span>`).join("")}</div>` : ""}
-    </div>`;
-  }
-
-  // ---- charts ----
-  h += `<h2>Trade-offs</h2><div class="grid2">
-    <div class="panel"><p class="chart-title">Quality vs size</p><p class="chart-note">Lower is closer to the reference. The line joins the Pareto-optimal quants.</p><div id="scatter"></div></div>
-    <div class="panel"><p class="chart-title">Where the drift lives</p><p class="chart-note">Share of tokens whose KL is at most x. A curve further left means fewer surprises.</p><div id="cdf"></div></div>
-  </div>`;
+  // where it breaks
   if (C[0] && C[0].by_category.length > 1) {
-    h += `<h2>By content type</h2><div class="panel"><p class="chart-title">Mean KL per category</p><p class="chart-note">Quantization rarely hurts everything equally. This is where each quant breaks first.</p><div id="cats"></div></div>`;
-  }
-
-  // ---- tasks ----
-  const T = D.tasks;
-  if (T) {
-    const rs = T.summary[R.spec.name];
-    h += `<h2>Answers on real tasks</h2><div class="panel">
-      <p class="chart-title">Does it still answer the same?</p>
-      <p class="chart-note">Every model answers ${T.items.length} questions with known solutions (greedy decoding, up to ${T.gen_tokens} tokens), all from the exact same prompt tokens.
-      <b>Broken</b> = the original was right and the quant was wrong. <b>Identical</b> = token-for-token the same output as the original.</p>
-      <div class="scroll"><table><thead><tr><th>model</th><th>correct</th><th>broken</th><th>fixed</th><th>identical output</th><th>first difference after</th><th style="text-align:left;padding-left:24px">outputs vs. original</th></tr></thead><tbody>
-      <tr><td><span class="swatch" style="background:var(--muted)"></span><b>${esc(R.spec.name)}</b></td><td class="mono">${rs.correct}/${rs.n}</td><td class="muted">–</td><td class="muted">–</td><td class="muted">–</td><td class="muted">–</td><td></td></tr>`;
-    C.forEach((c, i) => {
-      const s = T.summary[c.model.spec.name]; if (!s) return;
-      const runs = T.runs[c.model.spec.name], ref = T.runs[R.spec.name];
-      const same = s.identical, broken = s.regressions, fixed = s.fixes, other = s.n - same - broken - fixed;
-      const seg = (n, col, label) => n ? `<span title="${label}: ${n}" style="display:inline-block;height:10px;width:${n / s.n * 180}px;background:${col}"></span>` : "";
-      h += `<tr><td><span class="swatch" style="background:${color(i)}"></span><b>${esc(c.model.spec.name)}</b></td>
-        <td class="mono">${s.correct}/${s.n}</td>
-        <td class="mono" style="color:${broken ? "var(--bad)" : "var(--good)"}">${broken}</td>
-        <td class="mono">${fixed}</td>
-        <td class="mono">${pct(same / s.n, 0)}</td>
-        <td class="mono">${s.median_diverge == null ? "never" : "~" + s.median_diverge.toFixed(0) + " tokens"}</td>
-        <td style="text-align:left;padding-left:24px"><span style="display:inline-flex;border-radius:3px;overflow:hidden">${seg(same, "var(--accent)", "identical")}${seg(other, "var(--line)", "different text, same verdict")}${seg(fixed, "var(--good)", "fixed")}${seg(broken, "var(--bad)", "broken")}</span></td></tr>`;
+    const cats = C[0].by_category.map(b => b.category);
+    const worst = C.map(c => c.by_category.reduce((a, b) => b.kl_mean > a.kl_mean ? b : a).category);
+    const allSame = worst.every(w => w === worst[0]);
+    const max = Math.max(...C.flatMap(c => c.by_category.map(b => b.kl_mean)), 1e-9);
+    h += `<section><div class="wrap"><h2>${T("where_title")}</h2><p class="intro">${T("where_intro")}</p>
+      <p class="callout">${allSame ? T("where_call", { cat: esc(cat(worst[0])) }) : T("where_call_mixed")}</p><div class="bars">`;
+    cats.sort((a, b) => {
+      const m = x => C.reduce((s, c) => s + (c.by_category.find(y => y.category === x) || { kl_mean: 0 }).kl_mean, 0);
+      return m(b) - m(a);
+    }).forEach(k => {
+      h += `<div class="bargroup"><div class="label">${esc(cat(k))}</div>`;
+      C.forEach((c, i) => {
+        const b = c.by_category.find(x => x.category === k); if (!b) return;
+        h += `<div class="bar"><span class="mono" style="color:${series(i)}">${esc(c.model.spec.name)}</span><div class="track"><div class="fill" style="width:${Math.max(0.5, b.kl_mean / max * 100)}%;background:${series(i)}"></div></div><span class="v mono">${fmtKL(b.kl_mean)}</span></div>`;
+      });
+      h += `</div>`;
     });
-    h += `</tbody></table></div>
-      <div class="controls" style="margin-top:22px">
-        <select id="tcand">${C.map((c, i) => `<option value="${i}">${esc(c.model.spec.name)}</option>`).join("")}</select>
-        <select id="tfilter"><option value="changed">answer verdict changed</option><option value="diff">output differs</option><option value="all">all tasks</option></select>
-        <span class="muted" id="tcount" style="font-size:13px"></span>
-      </div>
-      <div class="tasks" id="tasklist"></div></div>`;
+    h += `</div></div></section>`;
   }
 
-  // ---- calibration ----
-  const CAL = D.calibration;
-  if (CAL) {
-    h += `<h2>Calibrated quality tiers</h2><div class="panel">
-      <p class="chart-title">How much drift does it take before answers change?</p>
-      <p class="chart-note">Each dot is one task answered by one quant: its KL on the original's answer (x) and whether the ${esc(CAL.outcome.replace("answer ", ""))} (top row) or not (bottom row).
-      The curve is a logistic fit, P(change) = σ(${CAL.a.toFixed(2)} + ${CAL.b.toFixed(2)}·ln KL), on ${CAL.n} answers. The tier boundaries in this report are where it crosses
-      ${CAL.levels.map(p => pct(p, 0)).join(", ")}, so they are fitted to this model rather than picked by hand.</p>
-      <div id="calib"></div>
-      <div class="facts" style="margin-top:6px">${CAL.levels.map((p, i) => `<span class="fact">${pct(p, 0)} of answers change at <b class="mono">KL ${fmtKL(CAL.kl_at[i])}</b></span>`).join("")}</div>
-    </div>`;
-  } else if (D.calibration_note) {
-    h += `<p class="muted" style="font-size:13px;margin-top:18px">Tiers use the default thresholds: ${esc(D.calibration_note)}.</p>`;
-  }
-
-  // ---- token explorer ----
-  h += `<h2>Token explorer</h2><div class="panel">
+  // see it
+  const defCand = Math.max(0, C.length - 1);
+  h += `<section><div class="wrap"><h2>${T("see_title")}</h2><p class="intro" id="seeintro"></p><div class="panel">
     <div class="controls">
-      <select id="doc">${D.docs.map((d, i) => `<option value="${i}">${esc(d.category)} / ${esc(d.name)}</option>`).join("")}</select>
-      <select id="cand">${C.map((c, i) => `<option value="${i}">${esc(c.model.spec.name)}</option>`).join("")}</select>
-      <div class="legend">KL <span class="ramp"></span> · <span style="box-shadow: inset 0 -2px 0 var(--bad)">&nbsp;flip&nbsp;</span> top token changed</div>
-    </div>
-    <div class="text" id="text"></div>
-  </div>`;
+      <select id="doc">${D.docs.map((d, i) => `<option value="${i}">${esc(cat(d.category))} · ${esc(d.name)}</option>`).join("")}</select>
+      <select id="cand">${C.map((c, i) => `<option value="${i}" ${i === defCand ? "selected" : ""}>${esc(c.model.spec.name)}</option>`).join("")}</select>
+      <div class="legend"><span><span class="ramp"></span> ${T("legend_shade")}</span><span class="u">${T("legend_line")}</span></div>
+    </div><div class="text" id="text"></div></div></div></section>`;
 
-  // ---- worst tokens ----
-  h += `<h2>Biggest disagreements</h2><div class="controls"><select id="wcand">${C.map((c, i) => `<option value="${i}">${esc(c.model.spec.name)}</option>`).join("")}</select></div><div class="worst" id="worst"></div>`;
+  // tasks
+  if (TK) {
+    h += `<section><div class="wrap"><h2>${T("tasks_title")}</h2><p class="intro">${T("tasks_intro", { n: TK.items.length })}</p><div class="tsum">`;
+    C.forEach((c, i) => {
+      const s = TK.summary[c.model.spec.name]; if (!s) return;
+      const other = s.n - s.identical - s.regressions - s.fixes;
+      const seg = (n, col, label) => n ? `<div title="${label}: ${n}" style="width:${n / s.n * 100}%;background:${col}"></div>` : "";
+      h += `<div class="tcell"><div class="mono" style="color:${series(i)};font-weight:600">${esc(c.model.spec.name)}</div>
+        <div class="big">${T("correct_of", { c: s.correct, n: s.n })}</div>
+        <div class="sub">${s.regressions ? T("broke", { b: s.regressions }) : T("broke0")}</div>
+        <div class="sub">${T("same_text", { p: pct(s.identical / s.n, 0) })}</div>
+        <div class="stack">${seg(s.identical, "var(--q0)", T("stack_same"))}${seg(other, "#3a3a3a", T("stack_reworded"))}${seg(s.fixes, "var(--q1)", T("stack_fixed"))}${seg(s.regressions, "var(--q3)", T("stack_broken"))}</div></div>`;
+    });
+    h += `</div><div class="controls">
+      <select id="tcand">${C.map((c, i) => `<option value="${i}" ${i === defCand ? "selected" : ""}>${esc(c.model.spec.name)}</option>`).join("")}</select>
+      <select id="tfilter"><option value="changed">${T("filter_changed")}</option><option value="diff">${T("filter_diff")}</option><option value="all">${T("filter_all")}</option></select>
+      <span class="muted" id="tcount" style="font-size:14px"></span></div><div id="tasklist"></div></div></section>`;
+  }
 
-  h += `<footer>
-    <b>Method.</b> Every prompt is run through the reference with teacher forcing. At each position its top-${D.settings.top_k} tokens are kept;
-    each quant is then asked for its probabilities on exactly those tokens, and the rest of the vocabulary is pooled into one tail bucket on both sides.
-    The KL divergence of these (k+1)-bucket distributions is a lower bound on the full-vocabulary KL and is tight when the reference tail is small.
-    <i>Top-1 agreement</i> counts positions where both models rank the same token first; a <i>confident flip</i> is a disagreement where the reference was over 50% sure.
-    ${energy ? `Energy is SoC package energy (CPU + GPU + ANE + DRAM) from IOReport during decoding, minus the idle baseline of ${D.idle_watts ? D.idle_watts.toFixed(2) + " W" : "–"}.` : ""}
-    ${D.tasks ? `Task answers are graded automatically: numeric tasks take the last number in the output, text tasks look for the expected word near the start. A candidate is only recommended if it breaks at most ${pct(D.thresholds.max_regression, 0)} of the answers the original gets right.` : ""}
-    Tiers${D.calibration ? " (calibrated on this model's answers)" : " (default thresholds)"}: near-lossless &lt; ${fmtKL(D.thresholds.near_lossless)}, excellent &lt; ${fmtKL(D.thresholds.excellent)}, noticeable &lt; ${fmtKL(D.thresholds.noticeable)} nats.
-    <br><br>Generated by <code>kldrift</code> · reference <code>${esc(R.spec.path)}</code> on ${esc(R.info.device)}.
-  </footer>`;
+  // luck
+  if (ST) {
+    h += `<section><div class="wrap"><h2>${T("luck_title")}</h2><p class="intro">${T("luck_intro")}</p><div class="claims">`;
+    const sig = i => i && (i.lo > 0 || i.hi < 0);
+    ST.pairs.forEach(p => {
+      const k = sig(p.kl_diff), a = p.acc_diff, as = sig(a);
+      let text, sure;
+      if (!k) { text = T("c_same", { s: esc(p.smaller), l: esc(p.larger) }); sure = false; }
+      else if (a && as && a.est < 0) { text = T("c_worse", { s: esc(p.smaller), l: esc(p.larger) }); sure = true; }
+      else if (a && as && a.est > 0) { text = T("c_better", { s: esc(p.smaller), l: esc(p.larger) }); sure = true; }
+      else if (a) { text = T("c_drift_only", { s: esc(p.smaller), l: esc(p.larger), n: TK.items.length }); sure = false; }
+      else { text = T("c_drift", { s: esc(p.smaller), l: esc(p.larger) }); sure = true; }
+      h += `<div class="claim"><span class="chip ${sure ? "sure" : "maybe"}">${T(sure ? "sure" : "maybe")}</span><div>${text}</div></div>`;
+    });
+    h += `</div><p style="margin:28px 0 0;color:var(--ink-2)">${T("stab_title")}</p><div class="stab">${ST.stability.map(([n, f]) => {
+      const i = C.findIndex(c => c.model.spec.name === n);
+      return `<div title="${esc(n)}: ${pct(f)}" style="width:${f * 100}%;background:${i >= 0 ? series(i) : "#3a3a3a"}">${f > 0.1 ? `${esc(n)} · ${pct(f, 0)}` : ""}</div>`;
+    }).join("")}</div></div></section>`;
+  }
+
+  // nerds
+  h += `<div class="wrap"><details class="nerd"><summary>${T("nerd")}</summary>${nerdHTML()}</details></div>`;
+  h += `<footer><div class="wrap">${T("footer", { v: esc(D.version) })}</div></footer>`;
 
   $("#app").innerHTML = h;
-  drawScatter(); drawCDF(); if ($("#cats")) drawCats(); if ($("#calib")) drawCalib();
+  $("#seeintro").innerHTML = T("see_intro", { cand: `<b class="mono">${esc(C[defCand] ? C[defCand].model.spec.name : "")}</b>` });
+  document.querySelectorAll(".lang button").forEach(b => b.onclick = () => { lang = b.dataset.l; try { localStorage.setItem("kldrift-lang", lang); } catch (e) {} render(); });
   $("#doc").onchange = $("#cand").onchange = drawText; drawText();
-  $("#wcand").onchange = drawWorst; drawWorst();
-  if (D.tasks) { $("#tcand").onchange = $("#tfilter").onchange = drawTasks; drawTasks(); }
-  $("#theme").onclick = () => {
-    const root = document.documentElement;
-    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    root.dataset.theme = dark ? "light" : "dark";
-    try { localStorage.setItem("kldrift-theme", root.dataset.theme); } catch (e) {}
-  };
+  if (TK) { $("#tcand").onchange = $("#tfilter").onchange = drawTasks; drawTasks(); }
+  const nd = $("details.nerd");
+  nd.addEventListener("toggle", () => { if (nd.open) drawNerdCharts(); });
 }
 
-// ---------- charts ----------
-function frame(w, hgt, m) { return { w, h: hgt, m, iw: w - m.l - m.r, ih: hgt - m.t - m.b }; }
-function logTicks(lo, hi) {
-  const t = []; for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) t.push(Math.pow(10, e));
-  return t.filter(v => v >= lo * 0.999 && v <= hi * 1.001);
-}
-
-function drawScatter() {
-  const C = DATA.candidates, f = frame(520, 300, { l: 54, r: 18, t: 14, b: 40 });
-  const xs = [DATA.reference.info.size_bytes, ...C.map(c => c.model.info.size_bytes)];
-  const ys = C.map(c => Math.max(c.summary.kl_mean, 1e-5));
-  const xt = niceTicks(Math.max(...xs) * 1.05), x0 = 0, x1 = xt[xt.length - 1] < Math.max(...xs) * 1.05 ? Math.max(...xs) * 1.08 : xt[xt.length - 1];
-  const y0 = Math.pow(10, Math.floor(Math.log10(Math.min(...ys)))), y1 = Math.pow(10, Math.ceil(Math.log10(Math.max(...ys) * 1.01)));
-  const X = v => f.m.l + (v - x0) / (x1 - x0) * f.iw;
-  const Y = v => f.m.t + f.ih - (Math.log10(v) - Math.log10(y0)) / (Math.log10(y1) - Math.log10(y0)) * f.ih;
-  let s = `<svg viewBox="0 0 ${f.w} ${f.h}" width="100%">`;
-  for (const t of logTicks(y0, y1)) s += `<line class="grid" x1="${f.m.l}" x2="${f.w - f.m.r}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${f.m.l - 8}" y="${Y(t) + 4}" text-anchor="end">${t >= 1 ? t : t.toExponential(0)}</text>`;
-  for (const v of xt) s += `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${f.m.t}" y2="${f.m.t + f.ih}"/><text x="${X(v)}" y="${f.h - 20}" text-anchor="middle">${v ? gb(v) : "0"}</text>`;
-  s += `<text x="${f.m.l + f.iw / 2}" y="${f.h - 3}" text-anchor="middle">size on disk</text><text transform="translate(12 ${f.m.t + f.ih / 2}) rotate(-90)" text-anchor="middle">mean KL (log)</text>`;
-  const rx = X(DATA.reference.info.size_bytes);
-  s += `<line x1="${rx}" x2="${rx}" y1="${f.m.t}" y2="${f.m.t + f.ih}" stroke="${css("--muted")}" stroke-dasharray="4 4"/><text x="${rx - 4}" y="${f.m.t + 10}" text-anchor="end">${esc(DATA.reference.spec.name)}</text>`;
-  const par = C.map((c, i) => ({ c, i })).filter(o => o.c.pareto).sort((a, b) => a.c.model.info.size_bytes - b.c.model.info.size_bytes);
-  if (par.length > 1) s += `<polyline fill="none" stroke="${css("--accent")}" stroke-width="1.5" stroke-opacity="0.6" points="${par.map(o => X(o.c.model.info.size_bytes) + "," + Y(Math.max(o.c.summary.kl_mean, 1e-5))).join(" ")}"/>`;
-  C.forEach((c, i) => {
-    const cx = X(c.model.info.size_bytes), cy = Y(Math.max(c.summary.kl_mean, 1e-5));
-    s += `<circle cx="${cx}" cy="${cy}" r="6" fill="${color(i)}" stroke="${css("--panel")}" stroke-width="2"><title>${esc(c.model.spec.name)}: KL ${fmtKL(c.summary.kl_mean)}</title></circle><text class="lbl" x="${cx + 9}" y="${cy + 4}">${esc(c.model.spec.name)}</text>`;
-  });
-  $("#scatter").innerHTML = s + "</svg>";
-}
-
-function drawCDF() {
-  const C = DATA.candidates, f = frame(520, 300, { l: 44, r: 18, t: 14, b: 40 });
-  const series = C.map(c => {
-    const v = []; for (const d of DATA.docs) { const dc = d.cands[c.model.spec.name]; if (dc) v.push(...dc.kl); }
-    return v.map(x => Math.max(x, 1e-6)).sort((a, b) => a - b);
-  });
-  const all = series.flat(); if (!all.length) return;
-  const lo = Math.max(1e-5, Math.pow(10, Math.floor(Math.log10(Math.max(all[Math.floor(all.length * 0.02)], 1e-5)))));
-  const hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...all))));
-  const X = v => f.m.l + (Math.log10(Math.min(Math.max(v, lo), hi)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * f.iw;
-  const Y = p => f.m.t + f.ih - p * f.ih;
-  let s = `<svg viewBox="0 0 ${f.w} ${f.h}" width="100%">`;
-  for (const p of [0, 0.25, 0.5, 0.75, 1]) s += `<line class="grid" x1="${f.m.l}" x2="${f.w - f.m.r}" y1="${Y(p)}" y2="${Y(p)}"/><text x="${f.m.l - 8}" y="${Y(p) + 4}" text-anchor="end">${p * 100}%</text>`;
-  for (const t of logTicks(lo, hi)) s += `<text x="${X(t)}" y="${f.h - 20}" text-anchor="middle">${t >= 1 ? t : t.toExponential(0)}</text>`;
-  s += `<text x="${f.m.l + f.iw / 2}" y="${f.h - 3}" text-anchor="middle">per-token KL (log)</text>`;
-  series.forEach((v, i) => {
-    const n = v.length, step = Math.max(1, Math.floor(n / 300)), pts = [];
-    for (let j = 0; j < n; j += step) pts.push(X(v[j]) + "," + Y((j + 1) / n));
-    pts.push(X(v[n - 1]) + "," + Y(1));
-    s += `<polyline fill="none" stroke="${color(i)}" stroke-width="2" points="${pts.join(" ")}"/>`;
-  });
-  s += C.map((c, i) => `<text class="lbl" x="${f.w - f.m.r}" y="${f.m.t + f.ih - 8 - i * 16}" text-anchor="end" style="fill:${color(i)}">${esc(c.model.spec.name)}</text>`).join("");
-  $("#cdf").innerHTML = s + "</svg>";
-}
-
-function drawCats() {
-  const C = DATA.candidates, cats = C[0].by_category.map(c => c.category);
-  const bh = 12, gap = 3, groupH = C.length * (bh + gap) + 14, f = frame(1040, cats.length * groupH + 30, { l: 120, r: 70, t: 6, b: 24 });
-  const max = Math.max(...C.flatMap(c => c.by_category.map(b => b.kl_mean)), 1e-9);
-  const X = v => f.m.l + v / max * f.iw;
-  let s = `<svg viewBox="0 0 ${f.w} ${f.h}" width="100%">`;
-  for (let i = 0; i <= 4; i++) { const v = max * i / 4; s += `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${f.m.t}" y2="${f.h - f.m.b}"/><text x="${X(v)}" y="${f.h - 6}" text-anchor="middle">${v.toFixed(3)}</text>`; }
-  cats.forEach((cat, gi) => {
-    const gy = f.m.t + gi * groupH;
-    s += `<text class="lbl" x="${f.m.l - 12}" y="${gy + groupH / 2}" text-anchor="end">${esc(cat)}</text>`;
-    C.forEach((c, i) => {
-      const b = c.by_category.find(x => x.category === cat); if (!b) return;
-      const y = gy + i * (bh + gap);
-      s += `<rect x="${f.m.l}" y="${y}" width="${Math.max(1, X(b.kl_mean) - f.m.l)}" height="${bh}" rx="3" fill="${color(i)}"><title>${esc(c.model.spec.name)} · ${esc(cat)}: KL ${fmtKL(b.kl_mean)}, top-1 ${pct(b.top1_agreement)}</title></rect>
-            <text x="${X(b.kl_mean) + 6}" y="${y + bh - 2}">${fmtKL(b.kl_mean)}</text>`;
-    });
-  });
-  $("#cats").innerHTML = s + "</svg>";
-}
-
-function drawCalib() {
-  const CAL = DATA.calibration, C = DATA.candidates, f = frame(1040, 330, { l: 56, r: 24, t: 18, b: 44 });
-  const kls = CAL.points.map(p => p.kl).concat(CAL.kl_at, C.map(c => Math.max(c.summary.kl_mean, 1e-6)));
-  const lo = Math.pow(10, Math.floor(Math.log10(Math.max(Math.min(...kls), 1e-6))));
-  const hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...kls))));
-  const X = v => f.m.l + (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * f.iw;
-  const Y = p => f.m.t + f.ih - p * f.ih;
-  const P = kl => 1 / (1 + Math.exp(-(CAL.a + CAL.b * Math.log(Math.max(kl, 1e-6)))));
-  const ci = Object.fromEntries(C.map((c, i) => [c.model.spec.name, i]));
-  let s = `<svg viewBox="0 0 ${f.w} ${f.h}" width="100%">`;
-  for (const p of [0, 0.25, 0.5, 0.75, 1]) s += `<line class="grid" x1="${f.m.l}" x2="${f.w - f.m.r}" y1="${Y(p)}" y2="${Y(p)}"/><text x="${f.m.l - 8}" y="${Y(p) + 4}" text-anchor="end">${p * 100}%</text>`;
-  for (const t of logTicks(lo, hi)) s += `<text x="${X(t)}" y="${f.h - 22}" text-anchor="middle">${t >= 1 ? t : t.toExponential(0)}</text>`;
-  s += `<text x="${f.m.l + f.iw / 2}" y="${f.h - 4}" text-anchor="middle">KL on the original's answer (log)</text><text transform="translate(14 ${f.m.t + f.ih / 2}) rotate(-90)" text-anchor="middle">P(answer changes)</text>`;
-  // tier bands
-  const bands = [[lo, CAL.kl_at[0], "--good", "near-lossless"], [CAL.kl_at[0], CAL.kl_at[1], "--good", "excellent"], [CAL.kl_at[1], CAL.kl_at[2], "--warn", "noticeable"], [CAL.kl_at[2], hi, "--bad", "degraded"]];
-  bands.forEach(([a, b, col, label], i) => {
-    const xa = X(a), xb = X(b); if (xb - xa < 1) return;
-    s += `<rect x="${xa}" y="${f.m.t}" width="${xb - xa}" height="${f.ih}" fill="var(${col})" opacity="${i === 0 ? 0.10 : i === 1 ? 0.05 : 0.06}"/>`;
-    if (xb - xa > 60) s += `<text x="${(xa + xb) / 2}" y="${f.m.t + 14}" text-anchor="middle" style="fill:var(${col})">${label}</text>`;
-  });
-  CAL.kl_at.forEach((k, i) => s += `<line x1="${X(k)}" x2="${X(k)}" y1="${f.m.t}" y2="${f.m.t + f.ih}" stroke="${css("--muted")}" stroke-dasharray="3 4"/><text x="${X(k) + 4}" y="${f.m.t + f.ih - 6}">${pct(CAL.levels[i], 0)}</text>`);
-  // points (deterministic jitter)
-  CAL.points.forEach((p, j) => {
-    const jit = ((j * 9301 + 49297) % 233280) / 233280 * 0.06 - 0.03;
-    const y = p.changed ? 0.96 + jit : 0.04 + jit;
-    s += `<circle cx="${X(p.kl)}" cy="${Y(y)}" r="3.2" fill="${color(ci[p.candidate] ?? 0)}" opacity="0.75"><title>${esc(p.candidate)} · ${esc(DATA.tasks.items[p.task].id)}: KL ${fmtKL(p.kl)}, ${p.changed ? "changed" : "unchanged"}</title></circle>`;
-  });
-  // fitted curve
-  const pts = []; for (let i = 0; i <= 200; i++) { const kl = Math.pow(10, Math.log10(lo) + (Math.log10(hi) - Math.log10(lo)) * i / 200); pts.push(X(kl) + "," + Y(P(kl))); }
-  s += `<polyline fill="none" stroke="${css("--ink")}" stroke-width="2" points="${pts.join(" ")}"/>`;
-  // where each candidate sits (prompt KL)
-  C.forEach((c, i) => {
-    const kl = Math.max(c.summary.kl_mean, 1e-6), x = X(kl), y = Y(P(kl));
-    s += `<circle cx="${x}" cy="${y}" r="7" fill="${color(i)}" stroke="${css("--panel")}" stroke-width="2"><title>${esc(c.model.spec.name)}: mean KL ${fmtKL(kl)} → ~${pct(P(kl), 0)} of answers change</title></circle>
-          <text class="lbl" x="${x + 10}" y="${y - 8}">${esc(c.model.spec.name)} ~${pct(P(kl), 0)}</text>`;
-  });
-  $("#calib").innerHTML = s + "</svg>";
-}
-
-// ---------- token explorer ----------
+// ---------------------------------------------------------------- explorer
 let current = null;
 function drawText() {
-  const d = DATA.docs[+$("#doc").value], c = DATA.candidates[+$("#cand").value], dc = d.cands[c.model.spec.name];
+  const D = DATA, d = D.docs[+$("#doc").value], c = D.candidates[+$("#cand").value], dc = d.cands[c.model.spec.name];
   current = { d, c, dc };
+  $("#seeintro").innerHTML = T("see_intro", { cand: `<b class="mono">${esc(c.model.spec.name)}</b>` });
   const scale = Math.max(0.5, c.summary.kl_p99 || 0.5);
   let h = `<span class="tok">${esc(d.pieces[0] || "")}</span>`;
   for (let i = 1; i < d.pieces.length; i++) {
     const kl = dc ? dc.kl[i - 1] : 0, fl = dc ? dc.flip[i - 1] : 0;
-    const a = Math.min(0.9, Math.sqrt(Math.min(kl / scale, 1)) * 0.9);
+    const a = Math.min(0.85, Math.sqrt(Math.min(kl / scale, 1)) * 0.85);
     const p = d.pieces[i];
     const body = p.includes("\n") ? esc(p).replace(/\n/g, '<span class="nl">↵</span>\n') : esc(p);
     h += `<span class="tok f${fl}" data-i="${i}" style="background:rgba(${css("--heat")},${a.toFixed(3)})">${body}</span>`;
@@ -441,60 +511,170 @@ function drawText() {
   $("#text").innerHTML = h;
 }
 
-function altList(list, actual) {
-  return list.map(([w, p]) => `<div class="alt"><span class="w${w === actual ? " hit" : ""}">${esc(showPiece(w))}</span><span class="p">${(p * 100).toFixed(1)}%</span><div class="pbar" style="width:${Math.max(1, p * 100)}%"></div></div>`).join("");
+function alts(list, actual) {
+  return list.map(([w, p]) => `<div class="alt"><span class="w${w === actual ? " hit" : ""}">${esc(showPiece(w))}</span><span class="p">${(p * 100).toFixed(1)}%</span><div class="pb" style="width:${Math.max(1, p * 100)}%"></div></div>`).join("");
 }
 
+function tokenTip(el) {
+  const i = +el.dataset.i, { d, c, dc } = current, actual = d.pieces[i], fl = dc.flip[i - 1];
+  return `<div class="t mono">${esc(showPiece(actual))} <span class="muted" style="font-family:var(--sans);font-weight:400">· KL ${fmtKL(dc.kl[i - 1])}${fl === 2 ? ` · <span class="bad">${T("tip_flip2")}</span>` : fl === 1 ? ` · ${T("tip_flip")}` : ""}</span></div>
+    <div class="cols"><div><div class="muted">${T("tip_ref")}</div>${alts(d.ref_top[i - 1], actual)}</div>
+    <div><div class="muted">${T("tip_cand", { cand: esc(c.model.spec.name) })}</div>${alts(dc.top[i - 1], actual)}</div></div>`;
+}
+
+const tip = () => $("#tip");
+function showTip(html, x, y, cls = "") {
+  const el = tip(); el.className = cls; el.innerHTML = html; el.style.display = "block";
+  const r = el.getBoundingClientRect();
+  el.style.left = Math.max(12, Math.min(x + 14, innerWidth - r.width - 12)) + "px";
+  el.style.top = (y + 18 + r.height > innerHeight ? Math.max(12, y - r.height - 12) : y + 18) + "px";
+}
 document.addEventListener("mousemove", e => {
-  const tip = $("#tip"), t = e.target.closest && e.target.closest(".tok[data-i]");
-  if (!t || !current) { tip.style.display = "none"; return; }
-  const i = +t.dataset.i, { d, c, dc } = current, actual = d.pieces[i];
-  const fl = dc.flip[i - 1];
-  tip.innerHTML = `<div><b class="mono">${esc(showPiece(actual))}</b> <span class="muted">· KL ${fmtKL(dc.kl[i - 1])}${fl === 2 ? ' · <b style="color:var(--bad)">confident flip</b>' : fl === 1 ? " · top token differs" : ""}</span></div>
-    <div class="tipgrid"><div><div class="muted">${esc(DATA.reference.spec.name)} predicted</div>${altList(d.ref_top[i - 1], actual)}</div>
-    <div><div class="muted">${esc(c.model.spec.name)} predicted</div>${altList(dc.top[i - 1], actual)}</div></div>`;
-  tip.style.display = "block";
-  const r = tip.getBoundingClientRect();
-  tip.style.left = Math.min(e.clientX + 14, innerWidth - r.width - 12) + "px";
-  tip.style.top = (e.clientY + 18 + r.height > innerHeight ? e.clientY - r.height - 12 : e.clientY + 18) + "px";
+  const tk = e.target.closest && e.target.closest(".tok[data-i]");
+  const tm = e.target.closest && e.target.closest(".term");
+  if (tk && current) return showTip(tokenTip(tk), e.clientX, e.clientY);
+  if (tm) { const [n, d] = STR[lang].terms[tm.dataset.term]; return showTip(`<div class="t">${n}</div><div style="color:var(--ink-2)">${d}</div>`, e.clientX, e.clientY, "term"); }
+  if (!document.querySelector(".tok.sel")) tip().style.display = "none";
+});
+document.addEventListener("click", e => {
+  const tk = e.target.closest && e.target.closest(".tok[data-i]");
+  const tm = e.target.closest && e.target.closest(".term");
+  document.querySelectorAll(".tok.sel").forEach(x => x.classList.remove("sel"));
+  if (tk && current) { tk.classList.add("sel"); const r = tk.getBoundingClientRect(); showTip(tokenTip(tk), r.left, r.bottom - 10); }
+  else if (tm) { const [n, d] = STR[lang].terms[tm.dataset.term]; const r = tm.getBoundingClientRect(); showTip(`<div class="t">${n}</div><div style="color:var(--ink-2)">${d}</div>`, r.left, r.bottom - 10, "term"); }
+  else tip().style.display = "none";
 });
 
+// ---------------------------------------------------------------- tasks
 function drawTasks() {
-  const T = DATA.tasks, c = DATA.candidates[+$("#tcand").value], name = c.model.spec.name;
-  const ref = T.runs[DATA.reference.spec.name], runs = T.runs[name], mode = $("#tfilter").value;
-  const idx = T.items.map((_, i) => i).filter(i =>
-    mode === "all" ? true : mode === "diff" ? runs[i].diverge_at != null : runs[i].correct !== ref[i].correct);
-  $("#tcount").textContent = `${idx.length} of ${T.items.length} tasks`;
-  const mark = ok => ok ? '<span style="color:var(--good)">✓ correct</span>' : '<span style="color:var(--bad)">✗ wrong</span>';
-  const out = (text, cut) => {
-    const chars = [...text], a = chars.slice(0, cut).join(""), b = chars.slice(cut).join("");
-    return `<div class="ctx">${esc(a)}${b ? `<mark>${esc(b)}</mark>` : ""}</div>`;
-  };
+  const D = DATA, TK = D.tasks, c = D.candidates[+$("#tcand").value], name = c.model.spec.name;
+  const ref = TK.runs[D.reference.spec.name], runs = TK.runs[name], mode = $("#tfilter").value;
+  const idx = TK.items.map((_, i) => i).filter(i => mode === "all" ? true : mode === "diff" ? runs[i].diverge_at != null : runs[i].correct !== ref[i].correct);
+  $("#tcount").textContent = T("showing", { k: idx.length, n: TK.items.length });
+  const verdict = ok => ok ? `<span class="ok">${T("right")}</span>` : `<span class="bad">${T("wrong")}</span>`;
+  const ans = (text, cut) => { const ch = [...text], a = ch.slice(0, cut).join(""), b = ch.slice(cut).join(""); return `<div class="ans">${esc(a)}${b ? `<mark>${esc(b)}</mark>` : ""}</div>`; };
   $("#tasklist").innerHTML = idx.length ? idx.map(i => {
-    const t = T.items[i], r = ref[i], q = runs[i];
-    const tag = q.correct !== r.correct ? (r.correct ? '<span class="tier t-degraded">broken</span>' : '<span class="tier t-near_lossless">fixed</span>')
-      : q.diverge_at == null ? '<span class="tier t-reference">identical</span>' : '<span class="tier t-reference">reworded</span>';
-    return `<div class="wcard" style="margin-top:12px"><div class="row"><span><b>${esc(t.id)}</b> <span class="muted">· ${esc(t.category)}</span></span>${tag}</div>
-      <div style="margin:4px 0 10px">${esc(t.prompt)} <span class="muted">→ expected <b class="mono">${esc(t.answer)}</b></span></div>
-      <div class="tipgrid"><div><div class="muted">${esc(DATA.reference.spec.name)} · ${mark(r.correct)}</div>${out(r.text, Infinity)}</div>
-      <div><div class="muted">${esc(name)} · ${mark(q.correct)}${q.diverge_at != null ? ` · differs from token ${q.diverge_at}` : ""}</div>${out(q.text, q.same_prefix_chars)}</div></div></div>`;
-  }).join("") : '<p class="muted">Nothing here: this quant gives the same verdict as the original on every task.</p>';
+    const t = TK.items[i], r = ref[i], q = runs[i];
+    return `<div class="qa"><div class="q">${esc(t.prompt)}</div><div class="exp">${T("expected")}: <b class="mono" style="color:var(--ink)">${esc(t.answer)}</b> · ${esc(cat(t.category))}</div>
+      <div class="cols"><div><div class="who">${esc(D.reference.spec.name)} · ${verdict(r.correct)}</div>${ans(r.text, Infinity)}</div>
+      <div><div class="who">${esc(name)} · ${verdict(q.correct)}</div>${ans(q.text, q.same_prefix_chars)}</div></div></div>`;
+  }).join("") : `<p class="muted">${T("none_changed")}</p>`;
+}
+
+// ---------------------------------------------------------------- nerds
+function nerdHTML() {
+  const D = DATA, R = D.reference, C = D.candidates, ST = D.stats;
+  const anyBench = [R, ...C.map(c => c.model)].some(m => m.bench);
+  const energy = D.energy_available && [R, ...C.map(c => c.model)].some(m => m.bench && m.bench.energy_mj_per_tok != null);
+  const bc = m => anyBench ? (m.bench ? `<td class="mono">${nice(m.bench.prefill_tok_s)}</td><td class="mono">${nice(m.bench.decode_tok_s)}</td><td class="mono">${m.bench.mem_bytes ? gb(m.bench.mem_bytes) : "–"}</td>` : "<td>–</td><td>–</td><td>–</td>") : "";
+  const ec = m => energy ? `<td class="mono">${m.bench && m.bench.energy_mj_per_tok != null ? m.bench.energy_mj_per_tok.toFixed(1) + " mJ" : "–"}</td>` : "";
+  let h = `<h3>${T("n_table")}</h3><div class="scroll"><table><thead><tr><th>model</th><th>size</th><th>KL mean</th><th>KL p99</th><th>top-1</th><th>confident flips</th><th>PPL</th><th>ΔPPL</th>
+    ${anyBench ? "<th>prefill t/s</th><th>decode t/s</th><th>memory</th>" : ""}${energy ? "<th>energy/token</th>" : ""}<th>tier</th></tr></thead><tbody>
+    <tr><td><span class="sw" style="background:var(--muted)"></span>${esc(R.spec.name)}</td><td class="mono">${gb(R.info.size_bytes)}</td><td class="mono muted">0</td><td class="mono muted">0</td><td class="mono muted">100%</td><td class="mono muted">0</td><td class="mono">${R.ppl.toFixed(3)}</td><td class="mono muted">0</td>${bc(R)}${ec(R)}<td class="muted">reference</td></tr>
+    ${C.map((c, i) => { const s = c.summary; return `<tr><td><span class="sw" style="background:${series(i)}"></span>${esc(c.model.spec.name)}${c.pareto ? ' <span class="muted">◆</span>' : ""}</td><td class="mono">${gb(c.model.info.size_bytes)}</td><td class="mono">${fmtKL(s.kl_mean)}</td><td class="mono">${s.kl_p99.toFixed(3)}</td><td class="mono">${pct(s.top1_agreement)}</td><td class="mono">${s.confident_flips}</td><td class="mono">${s.ppl_cand.toFixed(3)}</td><td class="mono">${s.ppl_delta_pct >= 0 ? "+" : ""}${s.ppl_delta_pct.toFixed(2)}%</td>${bc(c.model)}${ec(c.model)}<td style="color:${QCOL[c.tier]}">${c.tier.replace("_", "-")}</td></tr>`; }).join("")}
+    </tbody></table></div><p class="note">◆ Pareto-optimal: no other version is both smaller and closer to the original.</p>`;
+  if (ST) {
+    const ci = (i, f) => `${f(i.est)} <span class="muted">[${f(i.lo)}–${f(i.hi)}]</span>`;
+    h += `<h3>${T("n_ci")}</h3><p class="note">${ST.replicates} paired bootstrap resamples, prompt tokens in ${ST.block_tokens}-token blocks, tasks individually.</p><div class="scroll"><table><thead><tr><th>model</th><th>KL mean</th><th>top-1</th>${ST.candidates[0] && ST.candidates[0].accuracy ? "<th>accuracy</th><th>broken share</th>" : ""}${ST.candidates[0] && ST.candidates[0].p_change ? "<th>P(answer changes)</th>" : ""}</tr></thead><tbody>
+      ${ST.candidates.map(c => `<tr><td>${esc(c.name)}</td><td class="mono">${ci(c.kl_mean, fmtKL)}</td><td class="mono">${ci(c.top1, x => pct(x))}</td>${c.accuracy ? `<td class="mono">${ci(c.accuracy, x => pct(x, 0))}</td><td class="mono">${ci(c.broken_rate, x => pct(x, 0))}</td>` : ""}${c.p_change ? `<td class="mono">${ci(c.p_change, x => pct(x, 0))}</td>` : ""}</tr>`).join("")}
+      </tbody></table></div>
+      <div class="scroll" style="margin-top:14px"><table><thead><tr><th>pair</th><th>Δ KL mean</th>${ST.pairs[0] && ST.pairs[0].acc_diff ? "<th>Δ accuracy</th>" : ""}</tr></thead><tbody>
+      ${ST.pairs.map(p => `<tr><td>${esc(p.smaller)} − ${esc(p.larger)}</td><td class="mono">${ci(p.kl_diff, x => (x >= 0 ? "+" : "") + x.toFixed(4))}</td>${p.acc_diff ? `<td class="mono">${ci(p.acc_diff, x => (x >= 0 ? "+" : "") + (x * 100).toFixed(0) + "%")}</td>` : ""}</tr>`).join("")}
+      </tbody></table></div>`;
+  }
+  h += `<div class="grid2" style="margin-top:8px"><div><h3>${T("n_size")}</h3><p class="note">${T("n_size_note")}</p><div id="scatter"></div></div>
+    <div><h3>${T("n_cdf")}</h3><p class="note">${T("n_cdf_note")}</p><div id="cdf"></div></div></div>`;
+  if (D.calibration) {
+    const cal = D.calibration;
+    h += `<h3>${T("n_cal")}</h3><p class="note">${T("n_cal_note", { levels: cal.levels.map(p => pct(p, 0)).join(", ") })}
+      logit P = ${cal.a.toFixed(2)} + ${cal.b.toFixed(2)}·ln KL, n = ${cal.n} (${esc(cal.outcome)}).</p><div id="calib"></div>`;
+  } else if (D.calibration_note) {
+    h += `<p class="note">Calibration skipped: ${esc(D.calibration_note)}.</p>`;
+  }
+  h += `<h3>${T("n_worst")}</h3><div class="controls"><select id="wcand">${C.map((c, i) => `<option value="${i}">${esc(c.model.spec.name)}</option>`).join("")}</select></div><div id="worst" class="grid2"></div>`;
+  h += `<h3>${T("n_method")}</h3><div class="method">
+    <p>Teacher forcing: every prompt is tokenized once by the reference and the same token ids go through every model, so positions line up exactly. At each position the reference keeps its top-${D.settings.top_k} tokens; each quant reports its log-probabilities for exactly those, and the rest of the vocabulary is pooled into one tail bucket on both sides. The KL divergence of these (k+1)-bucket distributions is a lower bound on the full-vocabulary KL and is tight when the reference tail is small.</p>
+    <p>Top-1 agreement counts positions where both rank the same token first; a confident flip is a disagreement where the reference was over 50% sure. Tasks are answered greedily (up to ${D.tasks ? D.tasks.gen_tokens : "–"} tokens) from identical prompt ids and graded automatically: numeric tasks take the last number in the output, text tasks look for the expected word near the start.</p>
+    ${D.energy_available ? `<p>Energy: SoC package energy (CPU + GPU + ANE + DRAM) from IOReport during decoding, minus an idle baseline of ${D.idle_watts ? D.idle_watts.toFixed(2) + " W" : "–"}.</p>` : ""}
+    <p>Tier boundaries${D.calibration ? " (calibrated)" : " (defaults)"}: near-lossless &lt; ${fmtKL(D.thresholds.near_lossless)}, excellent &lt; ${fmtKL(D.thresholds.excellent)}, noticeable &lt; ${fmtKL(D.thresholds.noticeable)} nats. Reference <code>${esc(D.reference.spec.path)}</code> on ${esc(D.reference.info.device)}.</p></div>`;
+  return h;
+}
+
+function drawNerdCharts() {
+  drawScatter(); drawCDF(); if ($("#calib")) drawCalib();
+  $("#wcand").onchange = drawWorst; drawWorst();
+}
+
+function frame(w, hgt, m) { return { w, h: hgt, m, iw: w - m.l - m.r, ih: hgt - m.t - m.b }; }
+function logTicks(lo, hi) { const t = []; for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) t.push(Math.pow(10, e)); return t.filter(v => v >= lo * 0.999 && v <= hi * 1.001); }
+const tickLbl = t => t >= 1 ? String(t) : t.toExponential(0);
+function niceTicks(max, n = 4) { const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw))); const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw); const t = []; for (let v = 0; v <= max + 1e-9; v += step) t.push(v); return t; }
+
+function drawScatter() {
+  const C = DATA.candidates, f = frame(520, 300, { l: 54, r: 18, t: 14, b: 40 });
+  const xs = [DATA.reference.info.size_bytes, ...C.map(c => c.model.info.size_bytes)], ys = C.map(c => Math.max(c.summary.kl_mean, 1e-5));
+  const xt = niceTicks(Math.max(...xs) * 1.05), x1 = Math.max(xt[xt.length - 1], Math.max(...xs) * 1.05);
+  const y0 = Math.pow(10, Math.floor(Math.log10(Math.min(...ys)))), y1 = Math.pow(10, Math.ceil(Math.log10(Math.max(...ys) * 1.01)));
+  const X = v => f.m.l + v / x1 * f.iw, Y = v => f.m.t + f.ih - (Math.log10(v) - Math.log10(y0)) / (Math.log10(y1) - Math.log10(y0)) * f.ih;
+  let s = `<svg viewBox="0 0 ${f.w} ${f.h}" width="100%">`;
+  for (const t of logTicks(y0, y1)) s += `<line class="grid" x1="${f.m.l}" x2="${f.w - f.m.r}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${f.m.l - 8}" y="${Y(t) + 4}" text-anchor="end">${tickLbl(t)}</text>`;
+  for (const v of xt) s += `<text x="${X(v)}" y="${f.h - 20}" text-anchor="middle">${v ? gb(v) : "0"}</text>`;
+  s += `<text x="${f.m.l + f.iw / 2}" y="${f.h - 3}" text-anchor="middle">size</text>`;
+  const rx = X(DATA.reference.info.size_bytes);
+  s += `<line x1="${rx}" x2="${rx}" y1="${f.m.t}" y2="${f.m.t + f.ih}" stroke="${css("--muted")}" stroke-dasharray="4 4"/><text x="${rx - 4}" y="${f.m.t + 10}" text-anchor="end">${esc(DATA.reference.spec.name)}</text>`;
+  const par = C.filter(c => c.pareto).sort((a, b) => a.model.info.size_bytes - b.model.info.size_bytes);
+  if (par.length > 1) s += `<polyline fill="none" stroke="${css("--ink-2")}" stroke-opacity="0.5" stroke-width="1.5" points="${par.map(c => X(c.model.info.size_bytes) + "," + Y(Math.max(c.summary.kl_mean, 1e-5))).join(" ")}"/>`;
+  C.forEach((c, i) => { const cx = X(c.model.info.size_bytes), cy = Y(Math.max(c.summary.kl_mean, 1e-5)); s += `<circle cx="${cx}" cy="${cy}" r="6" fill="${series(i)}"/><text class="lbl" x="${cx + 10}" y="${cy + 4}">${esc(c.model.spec.name)}</text>`; });
+  $("#scatter").innerHTML = s + "</svg>";
+}
+
+function drawCDF() {
+  const C = DATA.candidates, f = frame(520, 300, { l: 44, r: 18, t: 14, b: 40 });
+  const ser = C.map(c => { const v = []; for (const d of DATA.docs) { const dc = d.cands[c.model.spec.name]; if (dc) v.push(...dc.kl); } return v.map(x => Math.max(x, 1e-6)).sort((a, b) => a - b); });
+  const all = ser.flat(); if (!all.length) return;
+  const lo = Math.max(1e-5, Math.pow(10, Math.floor(Math.log10(Math.max(all[Math.floor(all.length * 0.02)], 1e-5))))), hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...all))));
+  const X = v => f.m.l + (Math.log10(Math.min(Math.max(v, lo), hi)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * f.iw, Y = p => f.m.t + f.ih - p * f.ih;
+  let s = `<svg viewBox="0 0 ${f.w} ${f.h}" width="100%">`;
+  for (const p of [0, 0.25, 0.5, 0.75, 1]) s += `<line class="grid" x1="${f.m.l}" x2="${f.w - f.m.r}" y1="${Y(p)}" y2="${Y(p)}"/><text x="${f.m.l - 8}" y="${Y(p) + 4}" text-anchor="end">${p * 100}%</text>`;
+  for (const t of logTicks(lo, hi)) s += `<text x="${X(t)}" y="${f.h - 20}" text-anchor="middle">${tickLbl(t)}</text>`;
+  s += `<text x="${f.m.l + f.iw / 2}" y="${f.h - 3}" text-anchor="middle">per-token KL (log)</text>`;
+  ser.forEach((v, i) => { const n = v.length, step = Math.max(1, Math.floor(n / 300)), pts = []; for (let j = 0; j < n; j += step) pts.push(X(v[j]) + "," + Y((j + 1) / n)); pts.push(X(v[n - 1]) + "," + Y(1)); s += `<polyline fill="none" stroke="${series(i)}" stroke-width="2" points="${pts.join(" ")}"/>`; });
+  s += C.map((c, i) => `<text class="lbl" x="${f.w - f.m.r}" y="${f.m.t + f.ih - 8 - i * 16}" text-anchor="end" style="fill:${series(i)}">${esc(c.model.spec.name)}</text>`).join("");
+  $("#cdf").innerHTML = s + "</svg>";
+}
+
+function drawCalib() {
+  const CAL = DATA.calibration, C = DATA.candidates, f = frame(1040, 320, { l: 56, r: 24, t: 18, b: 44 });
+  const kls = CAL.points.map(p => p.kl).concat(CAL.kl_at, C.map(c => Math.max(c.summary.kl_mean, 1e-6)));
+  const lo = Math.pow(10, Math.floor(Math.log10(Math.max(Math.min(...kls), 1e-6)))), hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...kls))));
+  const X = v => f.m.l + (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * f.iw, Y = p => f.m.t + f.ih - p * f.ih;
+  const P = kl => 1 / (1 + Math.exp(-(CAL.a + CAL.b * Math.log(Math.max(kl, 1e-6)))));
+  const ci = Object.fromEntries(C.map((c, i) => [c.model.spec.name, i]));
+  let s = `<svg viewBox="0 0 ${f.w} ${f.h}" width="100%">`;
+  for (const p of [0, 0.25, 0.5, 0.75, 1]) s += `<line class="grid" x1="${f.m.l}" x2="${f.w - f.m.r}" y1="${Y(p)}" y2="${Y(p)}"/><text x="${f.m.l - 8}" y="${Y(p) + 4}" text-anchor="end">${p * 100}%</text>`;
+  for (const t of logTicks(lo, hi)) s += `<text x="${X(t)}" y="${f.h - 22}" text-anchor="middle">${tickLbl(t)}</text>`;
+  s += `<text x="${f.m.l + f.iw / 2}" y="${f.h - 4}" text-anchor="middle">KL on the original's answer (log)</text>`;
+  const bands = [[lo, CAL.kl_at[0], "--q0"], [CAL.kl_at[0], CAL.kl_at[1], "--q1"], [CAL.kl_at[1], CAL.kl_at[2], "--q2"], [CAL.kl_at[2], hi, "--q3"]];
+  bands.forEach(([a, b, col]) => { const xa = X(a), xb = X(b); if (xb - xa > 1) s += `<rect x="${xa}" y="${f.m.t + f.ih + 4}" width="${xb - xa}" height="4" fill="var(${col})"/>`; });
+  CAL.kl_at.forEach((k, i) => s += `<line x1="${X(k)}" x2="${X(k)}" y1="${f.m.t}" y2="${f.m.t + f.ih}" stroke="${css("--muted")}" stroke-dasharray="3 4"/><text x="${X(k) + 4}" y="${f.m.t + 12}">${pct(CAL.levels[i], 0)}</text>`);
+  CAL.points.forEach((p, j) => { const jit = ((j * 9301 + 49297) % 233280) / 233280 * 0.06 - 0.03; s += `<circle cx="${X(p.kl)}" cy="${Y(p.changed ? 0.96 + jit : 0.04 + jit)}" r="3" fill="${series(ci[p.candidate] ?? 0)}" opacity="0.7"/>`; });
+  const pts = []; for (let i = 0; i <= 200; i++) { const kl = Math.pow(10, Math.log10(lo) + (Math.log10(hi) - Math.log10(lo)) * i / 200); pts.push(X(kl) + "," + Y(P(kl))); }
+  s += `<polyline fill="none" stroke="${css("--ink")}" stroke-width="2" points="${pts.join(" ")}"/>`;
+  C.forEach((c, i) => { const kl = Math.max(c.summary.kl_mean, 1e-6), x = X(kl), y = Y(P(kl)); s += `<circle cx="${x}" cy="${y}" r="7" fill="${series(i)}" stroke="#0a0a0a" stroke-width="2"/><text class="lbl" x="${x + 10}" y="${y - 8}">${esc(c.model.spec.name)} ~${pct(P(kl), 0)}</text>`; });
+  $("#calib").innerHTML = s + "</svg>";
 }
 
 function drawWorst() {
   const c = DATA.candidates[+$("#wcand").value];
   $("#worst").innerHTML = c.worst.map(w => {
     const d = DATA.docs[w.doc];
-    return `<div class="wcard"><div class="row"><span class="muted">${esc(d.category)} / ${esc(d.name)}</span><span class="mono" style="color:var(--bad)">KL ${w.kl.toFixed(3)}</span></div>
-      <div class="ctx">…${esc(w.context)}<mark>${esc(w.actual)}</mark></div>
-      <div class="tipgrid"><div><div class="muted">${esc(DATA.reference.spec.name)}</div>${altList(w.ref_top, w.actual)}</div>
-      <div><div class="muted">${esc(c.model.spec.name)}</div>${altList(w.cand_top, w.actual)}</div></div></div>`;
+    return `<div class="panel" style="padding:16px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span class="muted">${esc(cat(d.category))} · ${esc(d.name)}</span><span class="mono bad">KL ${w.kl.toFixed(3)}</span></div>
+      <div class="ans mono" style="font-size:12.5px;color:var(--ink-2);white-space:pre-wrap;word-break:break-word">…${esc(w.context)}<mark style="background:rgba(var(--heat),.28);color:var(--ink)">${esc(w.actual)}</mark></div>
+      <div class="cols" style="margin-top:10px"><div><div class="muted" style="font-size:12px">${esc(DATA.reference.spec.name)}</div>${alts(w.ref_top, w.actual)}</div><div><div class="muted" style="font-size:12px">${esc(c.model.spec.name)}</div>${alts(w.cand_top, w.actual)}</div></div></div>`;
   }).join("");
 }
 
-try { const t = localStorage.getItem("kldrift-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-if (DATA) render(); else $("#app").innerHTML = "<p>No data embedded.</p>";
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => DATA && (drawScatter(), drawCDF()));
+if (DATA) render(); else document.body.innerHTML = "<p style='padding:40px'>No data embedded.</p>";
 </script>
 </body>
 </html>

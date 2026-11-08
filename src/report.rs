@@ -7,14 +7,46 @@ use owo_colors::OwoColorize;
 use std::path::Path;
 
 const TEMPLATE: &str = include_str!("../assets/report.html");
+const HERO_JPG: &[u8] = include_bytes!("../assets/hero.jpg");
 const DATA_MARKER: &str = "/*__KLDRIFT_DATA__*/null";
+const HERO_MARKER: &str = "__KLDRIFT_HERO__";
+
+fn base64(bytes: &[u8]) -> String {
+    const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+        let n = (b[0] as u32) << 16 | (b[1] as u32) << 8 | b[2] as u32;
+        for i in 0..4 {
+            if i <= chunk.len() {
+                out.push(A[(n >> (18 - 6 * i) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
 
 pub fn write_html(results: &Results, path: &Path) -> Result<()> {
     // Keep `</script>` and friends inside strings from closing the tag.
     let json = serde_json::to_string(results)?.replace("</", "<\\/").replace("<!--", "<\\!--");
-    let html = TEMPLATE.replacen(DATA_MARKER, &json, 1);
+    let hero = format!("data:image/jpeg;base64,{}", base64(HERO_JPG));
+    let html = TEMPLATE.replacen(DATA_MARKER, &json, 1).replacen(HERO_MARKER, &hero, 1);
     std::fs::write(path, html)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn base64_matches_rfc4648() {
+        assert_eq!(super::base64(b""), "");
+        assert_eq!(super::base64(b"f"), "Zg==");
+        assert_eq!(super::base64(b"fo"), "Zm8=");
+        assert_eq!(super::base64(b"foo"), "Zm9v");
+        assert_eq!(super::base64(b"foobar"), "Zm9vYmFy");
+    }
 }
 
 pub fn human_bytes(b: u64) -> String {
