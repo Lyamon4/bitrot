@@ -23,7 +23,7 @@ fn global_backend() -> Result<&'static LlamaBackend> {
         return Ok(b);
     }
     let mut b = LlamaBackend::init().map_err(|e| anyhow!("llama.cpp init failed: {e}"))?;
-    if std::env::var_os("KLDRIFT_LLAMA_LOGS").is_none() {
+    if std::env::var_os("BITROT_LLAMA_LOGS").is_none() {
         b.void_logs();
     }
     Ok(BACKEND.get_or_init(|| b))

@@ -265,7 +265,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
 
     println!(
         "{} {} prompts in {} categories · ctx {} · top-k {} · {}",
-        "kldrift".bold().cyan(),
+        "bitrot".bold().cyan(),
         docs.len(),
         docs.iter().map(|d| &d.category).collect::<std::collections::BTreeSet<_>>().len(),
         s.ctx,
@@ -509,7 +509,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
     });
 
     Ok(Results {
-        tool: "kldrift".into(),
+        tool: "bitrot".into(),
         version: env!("CARGO_PKG_VERSION").into(),
         created: chrono::Local::now().format("%Y-%m-%d %H:%M").to_string(),
         machine,

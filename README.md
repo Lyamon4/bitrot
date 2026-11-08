@@ -1,11 +1,11 @@
-# kldrift
+# bitrot
 
-**How much did quantization actually change your model?**
+**How much did quantization rot your LLM?**
 
-`kldrift` runs the same text through a full-precision LLM and its quantized versions (GGUF via llama.cpp, MLX on Apple Silicon), compares the probability distributions **token by token**, and tells you which quant to download for *your* prompts and *your* machine. Everything runs locally: no API keys, no cloud, no telemetry.
+`bitrot` runs the same text through a full-precision LLM and its quantized versions (GGUF via llama.cpp, MLX on Apple Silicon), compares the probability distributions **token by token**, and tells you which quant to download for *your* prompts and *your* machine. Everything runs locally: no API keys, no cloud, no telemetry.
 
 ```
-$ kldrift compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K_M.gguf SmolLM2-135M-Q2_K.gguf --open
+$ bitrot compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K_M.gguf SmolLM2-135M-Q2_K.gguf --open
 
   model                 size  of ref   KL mean    KL p99    top-1     ΔPPL decode t/s  quality
   F16                 269 MB    100%         0         0     100%        0       79.4  reference
@@ -48,12 +48,12 @@ Note the quality column: those tiers are not hard-coded. They come from fitting 
 
 "Q4_K_M or 4-bit MLX?" gets asked constantly, and the answers are blog posts with contradictory numbers. Perplexity hides most of the damage: two models can have the same perplexity and still disagree on which token comes next. llama.cpp can measure KL divergence, but only GGUF against GGUF, on its own text, without telling you *where* a quant breaks.
 
-kldrift answers the questions that matter before you pick a quant:
+bitrot answers the questions that matter before you pick a quant:
 
 - **How far does it drift?** Mean, p99 and max KL divergence from the reference, per token.
 - **Does it still say the same thing?** Top-1 agreement, plus *confident flips*: positions where the original was more than 50% sure and the quant picked something else anyway.
-- **Does it still give the same answers?** Every model answers questions with known solutions (arithmetic, facts, code, Russian) from the exact same prompt tokens. kldrift counts answers the quant **broke** (the original was right, the quant is wrong), how many outputs are token-for-token identical, and how many tokens in the text starts to differ. Distribution metrics alone can't show this: in the run above Q8_0 is "near-lossless" by KL, yet it still broke 3 of the 31 answers the original got right.
-- **What counts as "fine" for *this* model?** Instead of fixed thresholds, kldrift fits a logistic curve P(answer changes | KL) on every answer it observed and puts the tier boundaries where 2%, 5% and 15% of answers are expected to change. Small models are fragile: for SmolLM2-135M even Q8_0's tiny KL of 0.004 is predicted to change ~7% of answers (8% were observed), so its tiers come out much stricter than generic rules of thumb.
+- **Does it still give the same answers?** Every model answers questions with known solutions (arithmetic, facts, code, Russian) from the exact same prompt tokens. bitrot counts answers the quant **broke** (the original was right, the quant is wrong), how many outputs are token-for-token identical, and how many tokens in the text starts to differ. Distribution metrics alone can't show this: in the run above Q8_0 is "near-lossless" by KL, yet it still broke 3 of the 31 answers the original got right.
+- **What counts as "fine" for *this* model?** Instead of fixed thresholds, bitrot fits a logistic curve P(answer changes | KL) on every answer it observed and puts the tier boundaries where 2%, 5% and 15% of answers are expected to change. Small models are fragile: for SmolLM2-135M even Q8_0's tiny KL of 0.004 is predicted to change ~7% of answers (8% were observed), so its tiers come out much stricter than generic rules of thumb.
 - **Is the difference real or noise?** Every number gets a 95% bootstrap interval, every pair of quants gets a paired test, and the whole recommendation is re-run on 1000 resamples. Above: Q4_K_M drifts measurably more than Q8_0, but on 50 tasks its answers are *not* distinguishably worse. Q2_K's are, and the Q8_0 pick holds in 94% of resamples.
 - **Where does it break first?** Breakdown by content type. In the run above every quant degrades about twice as fast on Russian text as on English or code, which is the kind of thing you only learn by measuring.
 - **What does it cost to run?** Prefill and decode speed, memory, and on Apple Silicon **energy per token** read from the SoC's own counters.
@@ -78,7 +78,7 @@ kldrift answers the questions that matter before you pick a quant:
 ## Install
 
 ```bash
-git clone https://github.com/Lyamon4/kldrift && cd kldrift
+git clone https://github.com/Lyamon4/bitrot && cd bitrot
 cargo install --path .                    # macOS: Metal is used automatically
 cargo install --path . --features cuda    # Linux / Windows with an NVIDIA GPU
 ```
@@ -90,16 +90,16 @@ You need a Rust toolchain, CMake and a C/C++ compiler (llama.cpp is built from s
 Quick comparison from the command line (GGUF paths, or `mlx:<dir or hf-repo>` for MLX):
 
 ```bash
-kldrift compare model-f16.gguf model-Q8_0.gguf model-Q4_K_M.gguf --open
-kldrift compare model-f16.gguf mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit model-Q4_K_M.gguf
+bitrot compare model-f16.gguf model-Q8_0.gguf model-Q4_K_M.gguf --open
+bitrot compare model-f16.gguf mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit model-Q4_K_M.gguf
 ```
 
 Or describe the run in a config file (see [`examples/`](examples)):
 
 ```bash
-kldrift run -c examples/smollm2.toml --open
-kldrift run -c examples/gguf-vs-mlx.toml --open   # GGUF vs MLX on Apple Silicon
-kldrift report kldrift-out/results.json --open    # re-render a saved run
+bitrot run -c examples/smollm2.toml --open
+bitrot run -c examples/gguf-vs-mlx.toml --open   # GGUF vs MLX on Apple Silicon
+bitrot report bitrot-out/results.json --open    # re-render a saved run
 ```
 
 Use your own prompts: put text files into `prompts/<category>/<name>.txt` and pass `--prompts`. The bundled set covers English prose, Russian prose, Rust and Python code, math, and JSON/tables/SQL/CSV.
@@ -139,7 +139,7 @@ Use your own tasks: add `.jsonl` files to `tasks/` (the file name becomes the ca
                     └──────────────┘                               └──────────┘
 ```
 
-1. **Teacher forcing.** Every prompt is tokenized once by the reference, and the *same token ids* go through every model, so positions line up exactly. kldrift refuses to compare models whose tokenizers disagree.
+1. **Teacher forcing.** Every prompt is tokenized once by the reference, and the *same token ids* go through every model, so positions line up exactly. bitrot refuses to compare models whose tokenizers disagree.
 2. **Coarsened KL.** At each position the reference keeps its top-k tokens (k = 64). Each quant reports its probabilities for exactly those tokens, and the rest of the vocabulary is pooled into one tail bucket on both sides. The KL divergence of these (k+1)-bucket distributions is, by the data-processing inequality, a **lower bound** on the full-vocabulary KL. It is tight in practice because the reference tail is tiny, and it means models never have to ship 150k-wide logit rows between processes.
 3. **Behaviour check.** Each model greedily answers the tasks, starting from identical prompt ids. Answers are graded automatically, compared with the reference's verdict (broken / fixed), and the first differing token is recorded. A quant is only recommended if it breaks at most 10% (configurable: `max_regression`) of the answers the original gets right.
 4. **Calibration.** Every quant also scores the reference's own answers under teacher forcing, which gives one point per (quant, task): x = mean per-token KL on that answer, y = did the quant's own answer change (right↔wrong; if verdicts almost never flip, "the text changed" is used instead). A two-parameter logistic regression, logit P = a + b·ln KL, is fitted by Newton's method, and the tier boundaries become the KL values where P = 2%, 5% and 15%. Calibration is skipped, and the defaults below are used, when there are fewer than 5 changed or 5 unchanged answers, or when changes don't increase with KL.

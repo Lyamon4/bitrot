@@ -1,6 +1,6 @@
 /target
 /models
-/kldrift-out
+/bitrot-out
 *.gguf
 .DS_Store
 __pycache__/

@@ -1,4 +1,4 @@
-//! kldrift - how much did quantization actually change your model?
+//! bitrot - how much did quantization actually change your model?
 
 mod backend;
 mod calibrate;
@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(
-    name = "kldrift",
+    name = "bitrot",
     version,
     about = "Measure how far quantized LLMs drift from the original - per token, on your prompts, on your hardware.",
     long_about = None
@@ -47,7 +47,7 @@ enum Cmd {
     /// Run a comparison described by a TOML config file.
     Run {
         /// Path to the config (see examples/).
-        #[arg(short, long, default_value = "kldrift.toml")]
+        #[arg(short, long, default_value = "bitrot.toml")]
         config: PathBuf,
         #[command(flatten)]
         opts: RunOpts,
@@ -68,7 +68,7 @@ struct RunOpts {
     #[arg(short, long)]
     prompts: Option<PathBuf>,
     /// Output directory for results.json and report.html.
-    #[arg(short, long, default_value = "kldrift-out")]
+    #[arg(short, long, default_value = "bitrot-out")]
     out: PathBuf,
     /// Tokens per evaluation window.
     #[arg(long)]
@@ -221,7 +221,7 @@ fn main() -> Result<()> {
         }
         Cmd::Report { results, out, open } => {
             let data: runner::Results = serde_json::from_slice(&std::fs::read(&results)?)
-                .with_context(|| format!("{} is not a kldrift results file", results.display()))?;
+                .with_context(|| format!("{} is not a bitrot results file", results.display()))?;
             let out = out.unwrap_or_else(|| results.with_file_name("report.html"));
             report::write_html(&data, &out)?;
             println!("wrote {}", out.display());

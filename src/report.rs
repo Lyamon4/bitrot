@@ -8,8 +8,8 @@ use std::path::Path;
 
 const TEMPLATE: &str = include_str!("../assets/report.html");
 const HERO_JPG: &[u8] = include_bytes!("../assets/hero.jpg");
-const DATA_MARKER: &str = "/*__KLDRIFT_DATA__*/null";
-const HERO_MARKER: &str = "__KLDRIFT_HERO__";
+const DATA_MARKER: &str = "/*__BITROT_DATA__*/null";
+const HERO_MARKER: &str = "__BITROT_HERO__";
 
 fn base64(bytes: &[u8]) -> String {
     const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

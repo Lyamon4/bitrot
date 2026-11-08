@@ -1,7 +1,7 @@
-"""kldrift MLX worker.
+"""bitrot MLX worker.
 
 Speaks JSON lines on stdin/stdout. One request per line, one reply per line.
-Started by the kldrift binary; not meant to be run by hand.
+Started by the bitrot binary; not meant to be run by hand.
 """
 
 import json

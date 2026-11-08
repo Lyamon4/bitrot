@@ -109,6 +109,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 
 [[package]]
+name = "bitrot"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cc",
+ "chrono",
+ "clap",
+ "glob",
+ "indicatif",
+ "llama-cpp-2",
+ "owo-colors",
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -430,23 +447,6 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "kldrift"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cc",
- "chrono",
- "clap",
- "glob",
- "indicatif",
- "llama-cpp-2",
- "owo-colors",
- "serde",
- "serde_json",
- "toml",
 ]
 
 [[package]]

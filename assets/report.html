@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>kldrift report</title>
+<title>bitrot report</title>
 <style>
 :root {
   --bg: #0a0a0a;
@@ -16,9 +16,11 @@
   /* quality scale: identical -> barely -> noticeably -> badly */
   --q0: #f2f2f0;
   --q1: #8ec5ff;
-  --q2: #f5a524;
-  --q3: #ff5a4f;
-  --heat: 255, 90, 79;
+  --q2: #d9a441;
+  --q3: #e5484d;
+  --heat: 229, 72, 77;
+  --accent: #8ec5ff;
+  --bar: #4a4a47;
   --s0: #f2f2f0; --s1: #9b9bff; --s2: #4fd1c5; --s3: #f0a6ca; --s4: #bef264; --s5: #93c5fd;
   --sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -27,29 +29,33 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
 a { color: inherit; }
+b, strong { font-weight: 500; color: var(--ink); }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
 @media (max-width: 600px) { .wrap { padding: 0 16px; } }
 
 /* ---------- hero ---------- */
-.hero { position: relative; min-height: min(88vh, 760px); background: #000; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid var(--line); }
+.hero { position: relative; min-height: min(88vh, 760px); background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
 .hero .photo { position: absolute; top: 0; right: 0; bottom: 0; width: 68%; background: var(--hero) 38% 62% / cover no-repeat; }
 /* fade the photo's left edge into the black page so the text sits on black */
-.hero .photo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.85) 14%, rgba(0,0,0,0) 46%); }
+.hero .photo::before { content: ""; position: absolute; inset: 0; background:
+  linear-gradient(90deg, var(--bg) 0%, rgba(10,10,10,0.85) 16%, rgba(10,10,10,0) 48%),
+  linear-gradient(0deg, var(--bg) 0%, rgba(10,10,10,0) 32%); }
 .hero > .wrap { position: relative; z-index: 1; }
-.topbar { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
-.brand { font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; font-size: 15px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 24px 0; }
+.brand { font-family: var(--mono); font-weight: 500; font-size: 16px; }
 .brand span { color: var(--muted); font-weight: 400; }
 .lang { display: flex; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; overflow: hidden; }
-.lang button { background: none; border: 0; color: var(--muted); font: 600 13px var(--sans); padding: 6px 11px; cursor: pointer; }
+.lang button { background: none; border: 0; color: var(--muted); font: 500 13px var(--sans); padding: 6px 12px; cursor: pointer; transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1), color 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+.lang button:hover { color: var(--ink); }
 .lang button.on { background: var(--ink); color: #000; }
-.hero-text { padding: 9vh 0 64px; max-width: 470px; text-shadow: 0 1px 24px rgba(0,0,0,0.8); }
-.kicker { color: var(--ink-2); font-size: 18px; margin: 0 0 10px; }
-.hero h1 { font-size: clamp(48px, 7.4vw, 96px); line-height: 0.95; letter-spacing: -0.045em; margin: 0 0 22px; font-weight: 800; }
-.hero h1 .pick { font-family: var(--mono); letter-spacing: -0.06em; }
+.hero-text { padding: 96px 0 64px; max-width: 480px; text-shadow: 0 1px 24px rgba(0,0,0,0.8); }
+.kicker { color: var(--ink-2); font-size: 18px; margin: 0 0 12px; }
+.hero h1 { font-size: clamp(44px, 6.4vw, 80px); line-height: 1; letter-spacing: -0.03em; margin: 0 0 24px; font-weight: 500; }
+.hero h1 .pick { font-family: var(--mono); letter-spacing: -0.04em; color: var(--accent); }
 .hero p.lead { font-size: 19px; color: var(--ink-2); margin: 0 0 10px; max-width: 540px; }
-.hero .meta { font-size: 13px; color: var(--muted); margin-top: 22px; }
+.hero .meta { font-size: 13px; color: var(--muted); margin-top: 24px; }
 @media (max-width: 760px) {
   .hero { min-height: 0; }
   .hero .photo { position: relative; width: 100%; height: 64vw; order: 1; background-position: 45% 60%; }
@@ -62,51 +68,60 @@ a { color: inherit; }
 
 /* ---------- sections ---------- */
 section { padding: 88px 0 0; }
-section > .wrap > h2 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 10px; font-weight: 750; }
+section > .wrap > h2 { font-size: clamp(28px, 3.6vw, 36px); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 12px; font-weight: 500; }
 section > .wrap > p.intro { color: var(--ink-2); font-size: 17px; max-width: 680px; margin: 0 0 32px; }
 @media (max-width: 600px) { section { padding-top: 64px; } }
 
 /* how it works */
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-.step { background: var(--bg); padding: 22px 22px 24px; }
+.step { background: var(--bg); padding: 24px; }
 .step .n { font-family: var(--mono); color: var(--muted); font-size: 13px; }
-.step h3 { margin: 6px 0 6px; font-size: 18px; letter-spacing: -0.01em; }
+.step h3 { margin: 8px 0; font-size: 18px; font-weight: 500; }
 .step p { margin: 0; color: var(--ink-2); font-size: 15px; }
 @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
 
 /* options */
-.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 14px; }
-.opt { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; position: relative; }
-.opt.rec { border-color: var(--ink); }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(236px, 1fr)); gap: 16px; }
+.opt { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; position: relative; }
+.opt.rec { border-color: rgba(142,197,255,0.55); }
 .opt .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.opt .name { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: -0.04em; }
-.opt .tag { font-size: 12px; font-weight: 700; color: #000; background: var(--ink); border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
-.opt .tag.ref { background: none; color: var(--muted); border: 1px solid var(--line); font-weight: 600; }
-.opt .size { color: var(--ink-2); font-size: 14px; margin-top: 2px; }
-.sizebar { height: 4px; background: var(--surface-2); border-radius: 2px; margin: 10px 0 18px; overflow: hidden; }
-.sizebar i { display: block; height: 100%; background: var(--ink-2); }
-.opt .verdict { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+.opt .name { font-family: var(--mono); font-size: 24px; font-weight: 500; letter-spacing: -0.02em; }
+.opt .tag { font-size: 12px; font-weight: 500; color: #06121f; background: var(--accent); border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+.opt .tag.ref { background: none; color: var(--muted); border: 1px solid var(--line); }
+.opt .size { color: var(--ink-2); font-size: 14px; margin-top: 4px; }
+/* signature: the drift line. Where a version sits between "identical" and "badly damaged" */
+.drift { position: relative; height: 28px; margin: 16px 0 20px; }
+.drift .track { position: absolute; left: 0; right: 0; top: 8px; height: 1px; background: rgba(242,242,240,0.16); }
+.drift .tick { position: absolute; top: 4px; width: 1px; height: 9px; background: rgba(242,242,240,0.28); }
+.drift .trail { position: absolute; left: 0; top: 7px; height: 3px; border-radius: 2px; }
+.drift .dot { position: absolute; top: 3px; width: 11px; height: 11px; margin-left: -5px; border-radius: 50%; border: 2px solid var(--surface); }
+.drift .ends { position: absolute; left: 0; right: 0; top: 16px; display: flex; justify-content: space-between; font: 12px var(--mono); color: var(--muted); }
+.opt .verdict { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
 .opt ul { list-style: none; margin: 0; padding: 0; }
-.opt li { color: var(--ink-2); font-size: 15px; padding: 7px 0; border-top: 1px solid var(--line); }
-.opt li b { color: var(--ink); font-weight: 650; }
+.opt li { color: var(--ink-2); font-size: 15px; padding: 8px 0; border-top: 1px solid var(--line); }
+.opt li b { color: var(--ink); font-weight: 500; }
 
 /* bars */
-.bars { display: grid; gap: 22px; }
-.bargroup .label { font-weight: 650; margin-bottom: 8px; }
-.bar { display: grid; grid-template-columns: 110px 1fr 70px; align-items: center; gap: 12px; font-size: 14px; margin: 5px 0; }
-.bar .track { height: 10px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
-.bar .fill { height: 100%; border-radius: 3px; }
-.bar .v { text-align: right; color: var(--ink-2); }
+.bars { display: grid; gap: 24px; }
+.bargroup .label { font-weight: 500; margin-bottom: 8px; }
+.bar { display: grid; grid-template-columns: 112px 1fr 72px; align-items: center; gap: 12px; font-size: 14px; margin: 4px 0; color: var(--ink-2); }
+.bar .track { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 4px; background: var(--bar); }
+.bar.pick { color: var(--ink); }
+.bar.pick .fill { background: var(--accent); }
+.bar .v { text-align: right; }
 @media (max-width: 560px) { .bar { grid-template-columns: 80px 1fr 56px; } }
 .callout { border-left: 2px solid var(--q2); padding: 4px 0 4px 16px; color: var(--ink-2); margin: 0 0 28px; max-width: 680px; }
 .callout b { color: var(--ink); }
 
 /* explorer */
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
-.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
-select { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font: 15px var(--sans); max-width: 100%; }
-.legend { color: var(--muted); font-size: 13px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-left: auto; }
-.ramp { display: inline-block; width: 90px; height: 8px; border-radius: 4px; vertical-align: middle; background: linear-gradient(90deg, rgba(var(--heat),0.05), rgba(var(--heat),0.9)); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+select { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: 15px var(--sans); max-width: 100%; transition: border-color 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+select:hover { border-color: #3a3a3a; }
+select:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.legend { color: var(--muted); font-size: 13px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+.ramp { display: inline-block; width: 88px; height: 8px; border-radius: 4px; vertical-align: middle; background: linear-gradient(90deg, rgba(var(--heat),0.05), rgba(var(--heat),0.9)); }
 .u { box-shadow: inset 0 -2px 0 var(--q3); }
 .text { font-family: var(--mono); font-size: 14px; line-height: 2; white-space: pre-wrap; word-break: break-word; max-height: 460px; overflow-y: auto; padding-right: 6px; color: var(--ink-2); }
 .tok { border-radius: 3px; cursor: pointer; color: var(--ink); }
@@ -116,10 +131,10 @@ select { background: var(--bg); color: var(--ink); border: 1px solid var(--line)
 .tok:hover, .tok.sel { outline: 1.5px solid var(--ink); }
 .nl { color: var(--muted); opacity: 0.5; }
 
-#tip { position: fixed; z-index: 20; pointer-events: none; display: none; width: 380px; max-width: calc(100vw - 24px); background: #0d0d0d; border: 1px solid #333; border-radius: 10px; padding: 14px; font-size: 13px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
-#tip .t { font-weight: 650; margin-bottom: 8px; }
+#tip { position: fixed; z-index: 20; pointer-events: none; display: none; width: 380px; max-width: calc(100vw - 24px); background: #0d0d0d; border: 1px solid #333; border-radius: 12px; padding: 16px; font-size: 13px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
+#tip .t { font-weight: 500; margin-bottom: 8px; }
 #tip.term { width: 300px; }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .alt { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 4px 0; font-family: var(--mono); align-items: center; }
 .alt .w { white-space: pre; overflow: hidden; text-overflow: ellipsis; background: var(--surface-2); padding: 0 5px; border-radius: 3px; }
 .alt .w.hit { outline: 1px solid var(--ink-2); }
@@ -127,13 +142,13 @@ select { background: var(--bg); color: var(--ink); border: 1px solid var(--line)
 .alt .pb { grid-column: 1 / -1; height: 2px; background: var(--ink-2); opacity: 0.5; margin-top: -2px; }
 
 /* tasks */
-.tsum { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 26px; }
-.tcell { border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-.tcell .big { font-family: var(--mono); font-size: 28px; font-weight: 700; letter-spacing: -0.04em; }
+.tsum { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.tcell { border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.tcell .big { font-family: var(--mono); font-size: 28px; font-weight: 500; letter-spacing: -0.02em; margin: 4px 0; }
 .tcell .sub { color: var(--ink-2); font-size: 14px; }
 .stack { display: flex; height: 8px; border-radius: 3px; overflow: hidden; margin-top: 12px; background: var(--surface-2); }
-.qa { border-top: 1px solid var(--line); padding: 18px 0; }
-.qa .q { font-weight: 600; margin-bottom: 4px; }
+.qa { border-top: 1px solid var(--line); padding: 20px 0; }
+.qa .q { font-weight: 500; margin-bottom: 4px; }
 .qa .exp { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
 .qa .ans { font-family: var(--mono); font-size: 13px; white-space: pre-wrap; word-break: break-word; color: var(--ink-2); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
 .qa .ans mark { background: rgba(var(--heat), 0.28); color: var(--ink); border-radius: 2px; }
@@ -143,21 +158,22 @@ select { background: var(--bg); color: var(--ink); border: 1px solid var(--line)
 
 /* luck */
 .claims { display: grid; gap: 10px; }
-.claim { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
-.chip { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 3px 8px; text-align: center; }
-.chip.sure { background: var(--ink); color: #000; }
+.claim { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; }
+.chip { font-size: 12px; font-weight: 500; border-radius: 6px; padding: 4px 8px; text-align: center; }
+.chip.sure { background: var(--ink); color: #0a0a0a; }
 .chip.maybe { border: 1px solid var(--line); color: var(--muted); }
 @media (max-width: 560px) { .claim { grid-template-columns: 1fr; gap: 8px; } .chip { justify-self: start; } }
 .stab { display: flex; height: 34px; border-radius: 8px; overflow: hidden; margin-top: 12px; }
-.stab div { display: flex; align-items: center; justify-content: center; font: 600 13px var(--sans); color: #000; white-space: nowrap; overflow: hidden; }
+.stab div { display: flex; align-items: center; justify-content: center; font: 500 13px var(--sans); color: var(--ink-2); background: #2a2a28; white-space: nowrap; overflow: hidden; }
+.stab div.pick { background: var(--accent); color: #06121f; }
 
 /* nerds */
 details.nerd { margin-top: 88px; border-top: 1px solid var(--line); }
-details.nerd > summary { list-style: none; cursor: pointer; padding: 28px 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; display: flex; justify-content: space-between; align-items: center; }
+details.nerd > summary { list-style: none; cursor: pointer; padding: 28px 0; font-size: 22px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
 details.nerd > summary::-webkit-details-marker { display: none; }
 details.nerd > summary::after { content: "+"; font-family: var(--mono); color: var(--muted); font-size: 26px; font-weight: 400; }
 details.nerd[open] > summary::after { content: "−"; }
-.nerd h3 { font-size: 18px; margin: 36px 0 6px; }
+.nerd h3 { font-size: 18px; font-weight: 500; margin: 40px 0 8px; }
 .nerd .note { color: var(--muted); font-size: 14px; margin: 0 0 14px; max-width: 720px; }
 .scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -165,7 +181,7 @@ th { text-align: right; font-weight: 500; color: var(--muted); font-size: 12px; 
 td { text-align: right; padding: 10px; border-top: 1px solid var(--line); white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
 .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
 svg text { fill: var(--muted); font: 11px var(--sans); }
 svg .lbl { fill: var(--ink); font-weight: 600; }
@@ -174,15 +190,15 @@ svg .grid { stroke: var(--line); stroke-dasharray: 2 4; }
 .method code { font-family: var(--mono); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
 .term { border-bottom: 1px dotted var(--muted); cursor: help; }
-footer { padding: 64px 0 72px; color: var(--muted); font-size: 13px; }
+.end { height: 96px; }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="tip"></div>
 <script>
-const DATA = /*__KLDRIFT_DATA__*/null;
-const HERO = "__KLDRIFT_HERO__";
+const DATA = /*__BITROT_DATA__*/null;
+const HERO = "__BITROT_HERO__";
 
 // ---------------------------------------------------------------- language
 const STR = {
@@ -196,26 +212,26 @@ const STR = {
     meta_tasks: " and {n} questions",
     how_title: "How this works",
     how_intro: "You can't tell how much a {quant} lost just by looking at it. So we ask it.",
-    s1t: "Same input", s1: "The original model and every smaller version read the exact same text and questions.",
+    s1t: "Same input", s1: "The original model and every smaller version read the exact same text and questions",
     s2t: "Word by word", s2: "At every {token} we compare what each one expected to come next. The more the guesses differ, the more that version has drifted.",
     s3t: "Real answers", s3: "Each version also answers questions with known answers, so we see whether the drift actually changes what it says.",
     s3t_no: "Speed and size", s3_no: "We also time each version and weigh it, so you see what you gain for what you lose.",
     opts_title: "Your options",
     opts_intro: "Smaller versions are faster and use less memory, but drift further from the original. Here's what each one costs you.",
-    original: "original", pick: "our pick",
+    original: "original", pick: "our pick", drift_lo: "identical", drift_hi: "damaged",
     of_orig: "{size} · {pct} of the original",
     q_near_lossless: "Practically identical", q_excellent: "Barely changed", q_noticeable: "Noticeably changed", q_degraded: "Badly damaged",
     q_ref: "The full-size original",
-    same_word: "Picks the <b>same next word</b> as the original <b>{p}</b> of the time.",
+    same_word: "Picks the <b>same next word</b> as the original <b>{p}</b> of the time",
     tasks_line: "Got <b>{c} of {n}</b> test questions right (original: {rc}).",
     broke: "Got <b>{b}</b> wrong that the original got right.",
-    broke0: "Didn't get a single one wrong that the original got right.",
-    p_change: "Expect roughly <b>{p}</b> of its answers to come out different.",
-    speed: "Writes <b>{x}</b> {tokens}/s{rel}.",
+    broke0: "Didn't get a single one wrong that the original got right",
+    p_change: "Expect roughly <b>{p}</b> of its answers to come out different",
+    speed: "Writes <b>{x}</b> {tokens}/s{rel}",
     faster: ", {r}× the original", slower: ", {r}× slower than the original",
-    ref_line1: "This is what everything else is compared to.",
-    ref_line2: "Got <b>{c} of {n}</b> test questions right.",
-    energy: "Uses <b>{e} mJ</b> of energy per token.",
+    ref_line1: "This is what everything else is compared to",
+    ref_line2: "Got <b>{c} of {n}</b> test questions right",
+    energy: "Uses <b>{e} mJ</b> of energy per token",
     where_title: "Where it breaks first",
     where_intro: "Compression rarely hurts everything equally. Longer bar = more drift on that kind of text.",
     where_call: "Every version drifts most on <b>{cat}</b>. If that's what you use the model for, lean towards a bigger version.",
@@ -238,7 +254,7 @@ const STR = {
     sure: "certain", maybe: "could be luck",
     c_worse: "<b>{s}</b> is clearly worse than <b>{l}</b>: it drifts more and gets more answers wrong.",
     c_drift_only: "<b>{s}</b> drifts more than <b>{l}</b>, that part is certain. Whether its answers are actually worse can't be told from {n} questions yet.",
-    c_drift: "<b>{s}</b> drifts more than <b>{l}</b>.",
+    c_drift: "<b>{s}</b> drifts more than <b>{l}</b>",
     c_better: "<b>{s}</b> drifts more than <b>{l}</b>, yet answered more questions right on this set.",
     c_same: "<b>{s}</b> and <b>{l}</b> are indistinguishable on this data. Take the smaller one.",
     stab_title: "How often each version would be our pick, across 1,000 reshuffles:",
@@ -247,7 +263,6 @@ const STR = {
     n_size_note: "Lower = closer to the original. The line joins the versions that nothing else beats on both size and quality.",
     n_cdf_note: "Share of tokens with KL at most x. A curve further left means fewer surprises.",
     n_cal_note: "Each dot is one answer by one version: its KL on the original's answer and whether its own answer changed. The curve is a logistic fit; the quality labels in this report sit where it crosses {levels}.",
-    footer: "Generated by kldrift {v}. Everything ran locally on this machine. No data left it.",
     terms: {
       quant: ["quantized version", "A compressed copy of the model. Its numbers are stored with fewer bits, so it's smaller and faster but a bit less precise."],
       token: ["token", "A piece of text the model reads and writes, roughly ¾ of a word."],
@@ -265,26 +280,26 @@ const STR = {
     meta_tasks: " и {n} вопросах",
     how_title: "Как это работает",
     how_intro: "По файлу не видно, сколько {quant} потеряла. Поэтому мы её спрашиваем.",
-    s1t: "Одинаковый вход", s1: "Оригинал и каждая уменьшенная версия читают один и тот же текст и одни и те же вопросы.",
+    s1t: "Одинаковый вход", s1: "Оригинал и каждая уменьшенная версия читают один и тот же текст и одни и те же вопросы",
     s2t: "Слово за словом", s2: "На каждом {token} сравниваем, какое продолжение ждала каждая модель. Чем сильнее расходятся догадки, тем дальше версия «уехала» от оригинала.",
     s3t: "Настоящие ответы", s3: "Ещё каждая версия отвечает на вопросы с известным ответом, и видно, меняет ли это расхождение то, что она говорит.",
     s3t_no: "Скорость и размер", s3_no: "Ещё мы замеряем скорость и размер, чтобы было видно, что вы получаете взамен.",
     opts_title: "Варианты",
     opts_intro: "Чем меньше версия, тем она быстрее и легче, но тем дальше от оригинала. Вот чего стоит каждая.",
-    original: "оригинал", pick: "наш выбор",
+    original: "оригинал", pick: "наш выбор", drift_lo: "как оригинал", drift_hi: "испорчена",
     of_orig: "{size} · {pct} от оригинала",
     q_near_lossless: "Практически как оригинал", q_excellent: "Почти не изменилась", q_noticeable: "Заметно изменилась", q_degraded: "Сильно испорчена",
     q_ref: "Полноразмерный оригинал",
-    same_word: "В <b>{p}</b> случаев выбирает <b>то же следующее слово</b>, что и оригинал.",
+    same_word: "В <b>{p}</b> случаев выбирает <b>то же следующее слово</b>, что и оригинал",
     tasks_line: "Ответила правильно на <b>{c} из {n}</b> проверочных вопросов (оригинал: {rc}).",
     broke: "Ошиблась в <b>{b}</b>, где оригинал ответил верно.",
-    broke0: "Не ошиблась ни в одном вопросе, где оригинал ответил верно.",
-    p_change: "Примерно <b>{p}</b> её ответов будут отличаться от оригинала.",
-    speed: "Пишет <b>{x}</b> {tokens}/с{rel}.",
+    broke0: "Не ошиблась ни в одном вопросе, где оригинал ответил верно",
+    p_change: "Примерно <b>{p}</b> её ответов будут отличаться от оригинала",
+    speed: "Пишет <b>{x}</b> {tokens}/с{rel}",
     faster: ", в {r}× быстрее оригинала", slower: ", в {r}× медленнее оригинала",
-    ref_line1: "С ней сравниваются все остальные.",
-    ref_line2: "Ответила правильно на <b>{c} из {n}</b> проверочных вопросов.",
-    energy: "Тратит <b>{e} мДж</b> энергии на токен.",
+    ref_line1: "С ней сравниваются все остальные",
+    ref_line2: "Ответила правильно на <b>{c} из {n}</b> проверочных вопросов",
+    energy: "Тратит <b>{e} мДж</b> энергии на токен",
     where_title: "Где ломается первым",
     where_intro: "Сжатие почти никогда не бьёт по всему одинаково. Длиннее полоска = сильнее расхождение на таком тексте.",
     where_call: "Все версии сильнее всего «плывут» здесь: <b>{cat}</b>. Если модель нужна именно для этого, берите версию побольше.",
@@ -307,7 +322,7 @@ const STR = {
     sure: "точно", maybe: "может быть шум",
     c_worse: "<b>{s}</b> точно хуже <b>{l}</b>: отклоняется сильнее и чаще ошибается.",
     c_drift_only: "<b>{s}</b> отклоняется сильнее, чем <b>{l}</b>, это точно. А хуже ли её ответы, по {n} вопросам пока сказать нельзя.",
-    c_drift: "<b>{s}</b> отклоняется сильнее, чем <b>{l}</b>.",
+    c_drift: "<b>{s}</b> отклоняется сильнее, чем <b>{l}</b>",
     c_better: "<b>{s}</b> отклоняется сильнее, чем <b>{l}</b>, но на этом наборе ответила правильно на большее число вопросов.",
     c_same: "<b>{s}</b> и <b>{l}</b> на этих данных неотличимы. Берите ту, что меньше.",
     stab_title: "Как часто каждая версия становилась нашим выбором за 1000 перетасовок:",
@@ -316,7 +331,6 @@ const STR = {
     n_size_note: "Ниже = ближе к оригиналу. Линия соединяет версии, которые никто не обгоняет сразу и по размеру, и по качеству.",
     n_cdf_note: "Доля токенов с KL не больше x. Чем левее кривая, тем меньше сюрпризов.",
     n_cal_note: "Каждая точка: один ответ одной версии, её KL на ответе оригинала и изменился ли её собственный ответ. Кривая: логистическая регрессия; уровни качества в отчёте стоят там, где она пересекает {levels}.",
-    footer: "Сделано kldrift {v}. Всё считалось локально на этом компьютере, данные никуда не уходили.",
     terms: {
       quant: ["сжатая версия", "Уменьшенная копия модели: её числа хранятся в меньшем количестве бит, поэтому она легче и быстрее, но чуть менее точная."],
       token: ["токен", "Кусочек текста, который модель читает и пишет, примерно ¾ слова."],
@@ -326,7 +340,7 @@ const STR = {
   },
 };
 let lang = "en";
-try { lang = localStorage.getItem("kldrift-lang") || ((navigator.language || "").toLowerCase().startsWith("ru") ? "ru" : "en"); } catch (e) {}
+try { lang = localStorage.getItem("bitrot-lang") || ((navigator.language || "").toLowerCase().startsWith("ru") ? "ru" : "en"); } catch (e) {}
 const T = (k, v = {}) => String(STR[lang][k] ?? STR.en[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? "");
 const term = k => `<span class="term" data-term="${k}">${STR[lang].terms[k][0]}</span>`;
 const cat = c => STR[lang].cats[c] || c;
@@ -343,6 +357,20 @@ const fmtKL = x => x < 0.001 ? x.toExponential(1) : x.toFixed(4);
 const num = n => n.toLocaleString(lang === "ru" ? "ru-RU" : "en-US");
 const showPiece = s => s.replace(/\n/g, "↵").replace(/\t/g, "⇥") || "·";
 const nice = n => n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2);
+
+// Log-scale position of a KL value on the drift line, 0..100.
+function driftScale(D) {
+  const th = D.thresholds, kls = D.candidates.map(c => Math.max(c.summary.kl_mean, 1e-6));
+  const lo = Math.min(th.near_lossless / 4, ...kls) , hi = Math.max(th.noticeable * 4, ...kls.map(k => k * 1.6));
+  return kl => Math.max(0, Math.min(100, (Math.log(Math.max(kl, lo)) - Math.log(lo)) / (Math.log(hi) - Math.log(lo)) * 100));
+}
+function driftLine(D, kl, col) {
+  const x = driftScale(D), th = D.thresholds;
+  const ticks = [th.near_lossless, th.excellent, th.noticeable].map(t => `<span class="tick" style="left:${x(t)}%"></span>`).join("");
+  const pos = kl == null ? 0 : x(kl);
+  return `<div class="drift"><span class="track"></span>${ticks}<span class="trail" style="width:${pos}%;background:${col};opacity:.35"></span>
+    <span class="dot" style="left:${pos}%;background:${col}"></span><div class="ends"><span>${T("drift_lo")}</span><span>${T("drift_hi")}</span></div></div>`;
+}
 
 function modelName(D) {
   const base = (D.reference.spec.path.split(/[\\/]/).pop() || D.reference.spec.name).replace(/\.gguf$/i, "");
@@ -363,7 +391,7 @@ function render() {
   const tokens = C[0] ? C[0].summary.n_tokens : 0;
 
   let h = `<header class="hero" style="--hero:url('${HERO}')"><div class="photo"></div><div class="wrap" style="width:100%">
-    <div class="topbar"><div class="brand">kldrift <span>v${esc(D.version)}</span></div>
+    <div class="topbar"><div class="brand">bitrot <span>v${esc(D.version)}</span></div>
       <div class="lang"><button data-l="en" class="${lang === "en" ? "on" : ""}">EN</button><button data-l="ru" class="${lang === "ru" ? "on" : ""}">RU</button></div></div>
     <div class="hero-text">
       <p class="kicker">${T("kicker", { model: esc(model) })}</p>`;
@@ -388,7 +416,7 @@ function render() {
   const refSpeed = speed(R);
   h += `<section><div class="wrap"><h2>${T("opts_title")}</h2><p class="intro">${T("opts_intro")}</p><div class="opts">`;
   h += `<div class="opt"><div class="head"><span class="name">${esc(R.spec.name)}</span><span class="tag ref">${T("original")}</span></div>
-    <div class="size">${T("of_orig", { size: gb(R.info.size_bytes), pct: "100%" })}</div><div class="sizebar"><i style="width:100%"></i></div>
+    <div class="size">${T("of_orig", { size: gb(R.info.size_bytes), pct: "100%" })}</div>${driftLine(D, null, "var(--q0)")}
     <div class="verdict">${T("q_ref")}</div><ul><li>${T("ref_line1")}</li>
     ${refT ? `<li>${T("ref_line2", { c: refT.correct, n: refT.n })}</li>` : ""}
     ${refSpeed ? `<li>${T("speed", { x: nice(refSpeed), tokens: term("token"), rel: "" })}</li>` : ""}</ul></div>`;
@@ -399,7 +427,7 @@ function render() {
     if (sp && refSpeed) { const r = sp / refSpeed; rel = r >= 1.05 ? T("faster", { r: r.toFixed(1) }) : r <= 0.95 ? T("slower", { r: (1 / r).toFixed(1) }) : ""; }
     h += `<div class="opt ${rec === c ? "rec" : ""}"><div class="head"><span class="name">${esc(c.model.spec.name)}</span>${rec === c ? `<span class="tag">${T("pick")}</span>` : ""}</div>
       <div class="size">${T("of_orig", { size: gb(c.model.info.size_bytes), pct: pct(c.model.info.size_bytes / ref, 0) })}</div>
-      <div class="sizebar"><i style="width:${Math.min(100, c.model.info.size_bytes / ref * 100)}%"></i></div>
+      ${driftLine(D, c.summary.kl_mean, QCOL[c.tier])}
       <div class="verdict" style="color:${QCOL[c.tier]}">${T("q_" + c.tier)}</div><ul>
       <li>${T("same_word", { p: pct(s.top1_agreement) })}</li>
       ${t ? `<li>${T("tasks_line", { c: t.correct, n: t.n, rc: refT.correct })} ${t.regressions ? T("broke", { b: t.regressions }) : T("broke0")}</li>` : ""}
@@ -425,7 +453,7 @@ function render() {
       h += `<div class="bargroup"><div class="label">${esc(cat(k))}</div>`;
       C.forEach((c, i) => {
         const b = c.by_category.find(x => x.category === k); if (!b) return;
-        h += `<div class="bar"><span class="mono" style="color:${series(i)}">${esc(c.model.spec.name)}</span><div class="track"><div class="fill" style="width:${Math.max(0.5, b.kl_mean / max * 100)}%;background:${series(i)}"></div></div><span class="v mono">${fmtKL(b.kl_mean)}</span></div>`;
+        h += `<div class="bar ${rec === c ? "pick" : ""}"><span class="mono">${esc(c.model.spec.name)}</span><div class="track"><div class="fill" style="width:${Math.max(0.5, b.kl_mean / max * 100)}%"></div></div><span class="v mono">${fmtKL(b.kl_mean)}</span></div>`;
       });
       h += `</div>`;
     });
@@ -448,7 +476,7 @@ function render() {
       const s = TK.summary[c.model.spec.name]; if (!s) return;
       const other = s.n - s.identical - s.regressions - s.fixes;
       const seg = (n, col, label) => n ? `<div title="${label}: ${n}" style="width:${n / s.n * 100}%;background:${col}"></div>` : "";
-      h += `<div class="tcell"><div class="mono" style="color:${series(i)};font-weight:600">${esc(c.model.spec.name)}</div>
+      h += `<div class="tcell"><div class="mono" style="color:${rec === c ? "var(--accent)" : "var(--ink-2)"}">${esc(c.model.spec.name)}</div>
         <div class="big">${T("correct_of", { c: s.correct, n: s.n })}</div>
         <div class="sub">${s.regressions ? T("broke", { b: s.regressions }) : T("broke0")}</div>
         <div class="sub">${T("same_text", { p: pct(s.identical / s.n, 0) })}</div>
@@ -476,17 +504,17 @@ function render() {
     });
     h += `</div><p style="margin:28px 0 0;color:var(--ink-2)">${T("stab_title")}</p><div class="stab">${ST.stability.map(([n, f]) => {
       const i = C.findIndex(c => c.model.spec.name === n);
-      return `<div title="${esc(n)}: ${pct(f)}" style="width:${f * 100}%;background:${i >= 0 ? series(i) : "#3a3a3a"}">${f > 0.1 ? `${esc(n)} · ${pct(f, 0)}` : ""}</div>`;
+      return `<div class="${rec && n === rec.model.spec.name ? "pick" : ""}" title="${esc(n)}: ${pct(f)}" style="width:${f * 100}%">${f > 0.1 ? `${esc(n)} · ${pct(f, 0)}` : ""}</div>`;
     }).join("")}</div></div></section>`;
   }
 
   // nerds
   h += `<div class="wrap"><details class="nerd"><summary>${T("nerd")}</summary>${nerdHTML()}</details></div>`;
-  h += `<footer><div class="wrap">${T("footer", { v: esc(D.version) })}</div></footer>`;
+  h += `<div class="end"></div>`;
 
   $("#app").innerHTML = h;
   $("#seeintro").innerHTML = T("see_intro", { cand: `<b class="mono">${esc(C[defCand] ? C[defCand].model.spec.name : "")}</b>` });
-  document.querySelectorAll(".lang button").forEach(b => b.onclick = () => { lang = b.dataset.l; try { localStorage.setItem("kldrift-lang", lang); } catch (e) {} render(); });
+  document.querySelectorAll(".lang button").forEach(b => b.onclick = () => { lang = b.dataset.l; try { localStorage.setItem("bitrot-lang", lang); } catch (e) {} render(); });
   $("#doc").onchange = $("#cand").onchange = drawText; drawText();
   if (TK) { $("#tcand").onchange = $("#tfilter").onchange = drawTasks; drawTasks(); }
   const nd = $("details.nerd");

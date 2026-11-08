@@ -37,7 +37,7 @@ struct EvalReply {
 
 impl MlxWorker {
     pub fn open(path: &str, settings: &Settings) -> Result<Self> {
-        let script = std::env::temp_dir().join(format!("kldrift_mlx_worker_{}.py", env!("CARGO_PKG_VERSION")));
+        let script = std::env::temp_dir().join(format!("bitrot_mlx_worker_{}.py", env!("CARGO_PKG_VERSION")));
         std::fs::write(&script, WORKER_SRC).context("cannot write MLX worker script")?;
 
         let mut child = Command::new(&settings.python)

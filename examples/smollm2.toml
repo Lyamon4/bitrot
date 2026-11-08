@@ -1,4 +1,4 @@
-# kldrift run -c examples/smollm2.toml --open
+# bitrot run -c examples/smollm2.toml --open
 #
 # Paths are relative to this file. Get the models (free, ~600 MB):
 #   https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF

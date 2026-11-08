@@ -28,6 +28,6 @@ jobs:
           mkdir -p models
           base=https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main
           for q in f16 Q4_K_M; do curl -sSL -o models/SmolLM2-135M-Instruct-$q.gguf $base/SmolLM2-135M-Instruct-$q.gguf; done
-          ./target/release/kldrift compare models/SmolLM2-135M-Instruct-f16.gguf models/SmolLM2-135M-Instruct-Q4_K_M.gguf \
+          ./target/release/bitrot compare models/SmolLM2-135M-Instruct-f16.gguf models/SmolLM2-135M-Instruct-Q4_K_M.gguf \
             --max-tokens 128 --gen-tokens 16 --out ci-out
           test -s ci-out/report.html

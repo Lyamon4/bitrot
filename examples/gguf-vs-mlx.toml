@@ -1,7 +1,7 @@
 # The interesting one: GGUF vs MLX quants of the same model, on an
 # Apple Silicon Mac. Needs `pip install mlx-lm` for the MLX candidates.
 #
-#   kldrift run -c examples/gguf-vs-mlx.toml --open
+#   bitrot run -c examples/gguf-vs-mlx.toml --open
 #
 # MLX paths can be a local directory or a Hugging Face repo id
 # (downloaded on first use, no token needed for public repos).

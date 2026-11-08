@@ -1,4 +1,4 @@
-// kldrift macOS helpers: SoC energy counters (IOReport), chip name, and the
+// bitrot macOS helpers: SoC energy counters (IOReport), chip name, and the
 // process memory footprint. Exposed to Rust through a tiny C ABI.
 //
 // IOReport is a private framework (the same one `powermetrics`, asitop and

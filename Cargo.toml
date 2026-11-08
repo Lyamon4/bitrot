@@ -1,5 +1,5 @@
 [package]
-name = "kldrift"
+name = "bitrot"
 version = "0.1.0"
 edition = "2021"
 description = "Measure how much quantization actually changed your local LLM: per-token KL divergence across GGUF and MLX, with speed, memory and energy on your own hardware."
