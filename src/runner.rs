@@ -6,6 +6,7 @@ use crate::config::{Config, ModelSpec, Settings, Thresholds};
 use crate::dist::PosOut;
 use crate::metrics::{self, Summary, Tier, TokenDiv};
 use crate::sys::{self, Machine, PowerMeter};
+use crate::calibrate::{self, Calibration};
 use crate::tasks::{self, Task, TaskRun, TaskSection};
 use anyhow::{bail, Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -99,7 +100,13 @@ pub struct Results {
     pub created: String,
     pub machine: Machine,
     pub settings: Settings,
+    /// Tier boundaries actually used: calibrated if `calibration` is set.
     pub thresholds: Thresholds,
+    #[serde(default)]
+    pub calibration: Option<Calibration>,
+    /// Why calibration was skipped, if it was.
+    #[serde(default)]
+    pub calibration_note: Option<String>,
     pub energy_available: bool,
     pub idle_watts: Option<f64>,
     pub reference: ModelResult,
@@ -325,12 +332,14 @@ pub fn run(cfg: &Config) -> Result<Results> {
     let mut task_section = None;
     let mut task_prompts: Vec<Vec<u32>> = Vec::new();
     let mut ref_gen: Vec<Vec<u32>> = Vec::new();
+    let mut ref_answers: Vec<Vec<PosOut>> = Vec::new();
     if let Some(list) = &task_list {
         task_prompts = list.iter().map(|t| reference.chat_prompt(&t.prompt)).collect::<Result<_>>()?;
         let (gen, runs) = run_tasks(reference.as_mut(), list, &task_prompts, s.gen_tokens, &cfg.reference.name, None)?;
         let correct = runs.iter().filter(|r| r.correct).count();
         println!("  tasks {}/{} correct", correct, runs.len());
         ref_gen = gen;
+        ref_answers = score_answers(reference.as_mut(), &task_prompts, &ref_gen, s.top_k, None)?;
         let mut sec = TaskSection { items: list.clone(), gen_tokens: s.gen_tokens, ..Default::default() };
         sec.summary.insert(cfg.reference.name.clone(), tasks::summarize(&runs, &runs));
         sec.runs.insert(cfg.reference.name.clone(), runs);
@@ -391,7 +400,16 @@ pub fn run(cfg: &Config) -> Result<Results> {
         let mut task_line = String::new();
         if let (Some(sec), Some(list)) = (task_section.as_mut(), &task_list) {
             let ref_runs = sec.runs[&cfg.reference.name].clone();
-            let (_, runs) = run_tasks(model.as_mut(), list, &task_prompts, s.gen_tokens, &spec.name, Some((&ref_gen, &ref_runs)))?;
+            let (_, mut runs) = run_tasks(model.as_mut(), list, &task_prompts, s.gen_tokens, &spec.name, Some((&ref_gen, &ref_runs)))?;
+            // Score the reference's own answers with this model: the KL the
+            // calibration relates to whether the answer changed.
+            let ans = score_answers(model.as_mut(), &task_prompts, &ref_gen, s.top_k, Some(&ref_answers))?;
+            for ((run, r), c) in runs.iter_mut().zip(&ref_answers).zip(&ans) {
+                if !r.is_empty() {
+                    let divs: Vec<TokenDiv> = r.iter().zip(c).map(|(r, c)| metrics::token_divergence(r, c)).collect();
+                    run.answer_kl = Some(metrics::summarize(&divs).kl_mean);
+                }
+            }
             let ts = tasks::summarize(&runs, &ref_runs);
             task_line = format!("  ·  tasks {}/{} ({} broken, {} identical)", ts.correct, ts.n, ts.regressions, ts.identical);
             sec.summary.insert(spec.name.clone(), ts);
@@ -438,8 +456,25 @@ pub fn run(cfg: &Config) -> Result<Results> {
         });
     }
 
+    // ---- calibration ----------------------------------------------------
+    let mut thresholds = cfg.thresholds.clone();
+    let mut calibration = None;
+    let mut calibration_note = None;
+    if let Some(sec) = &task_section {
+        match calibrate::calibrate(sec, &cfg.reference.name) {
+            Ok(cal) => {
+                thresholds = cal.apply(&cfg.thresholds);
+                for c in cands.iter_mut() {
+                    c.tier = Tier::from_kl(c.summary.kl_mean, &thresholds);
+                }
+                calibration = Some(cal);
+            }
+            Err(why) => calibration_note = Some(why),
+        }
+    }
+
     mark_pareto(&mut cands);
-    let recommendation = recommend(&cands, &cfg.thresholds, task_section.as_ref(), &cfg.reference.name);
+    let recommendation = recommend(&cands, &thresholds, task_section.as_ref(), &cfg.reference.name);
 
     Ok(Results {
         tool: "kldrift".into(),
@@ -447,7 +482,9 @@ pub fn run(cfg: &Config) -> Result<Results> {
         created: chrono::Local::now().format("%Y-%m-%d %H:%M").to_string(),
         machine,
         settings: s.clone(),
-        thresholds: cfg.thresholds.clone(),
+        thresholds,
+        calibration,
+        calibration_note,
         energy_available: meter.available(),
         idle_watts: idle_w,
         reference: ref_result,
@@ -494,7 +531,7 @@ fn recommend(cands: &[CandidateResult], t: &Thresholds, sec: Option<&TaskSection
         return Some(Recommendation {
             name: c.model.spec.name.clone(),
             reason: format!(
-                "smallest model with mean KL < {} and ≥ {:.0}% top-1 agreement on your prompts{}",
+                "smallest model with mean KL < {:.4} and ≥ {:.0}% top-1 agreement on your prompts{}",
                 t.excellent,
                 t.min_top1 * 100.0,
                 task_note
@@ -504,7 +541,7 @@ fn recommend(cands: &[CandidateResult], t: &Thresholds, sec: Option<&TaskSection
     if let Some(c) = smallest(&|c| c.summary.kl_mean < t.noticeable && keeps_answers(c)) {
         return Some(Recommendation {
             name: c.model.spec.name.clone(),
-            reason: format!("no candidate is excellent; this is the smallest with mean KL < {}{}", t.noticeable, task_note),
+            reason: format!("no candidate is excellent; this is the smallest with mean KL < {:.4}{}", t.noticeable, task_note),
         });
     }
     cands
@@ -514,6 +551,38 @@ fn recommend(cands: &[CandidateResult], t: &Thresholds, sec: Option<&TaskSection
             name: c.model.spec.name.clone(),
             reason: "every candidate degrades noticeably; this one is closest to the reference".into(),
         })
+}
+
+/// Teacher-force `prompt ++ answer` for every task and return the outputs at
+/// the answer positions only. With `reference` (the reference's own outputs
+/// from this function) the model also scores the reference's top-k ids.
+fn score_answers(
+    model: &mut dyn Backend,
+    prompts: &[Vec<u32>],
+    answers: &[Vec<u32>],
+    top_k: usize,
+    reference: Option<&[Vec<PosOut>]>,
+) -> Result<Vec<Vec<PosOut>>> {
+    let mut all = Vec::with_capacity(prompts.len());
+    for (i, (prompt, answer)) in prompts.iter().zip(answers).enumerate() {
+        if answer.is_empty() || prompt.is_empty() {
+            all.push(Vec::new());
+            continue;
+        }
+        let seq: Vec<u32> = prompt.iter().chain(answer).copied().collect();
+        // Position t predicts token t+1; the answer starts at prompt.len().
+        let first = prompt.len() - 1;
+        let gather = reference.map(|r| {
+            let mut g = vec![Vec::new(); seq.len() - 1];
+            for (j, p) in r[i].iter().enumerate() {
+                g[first + j] = p.top.iter().map(|t| t.0).collect();
+            }
+            g
+        });
+        let out = model.eval(&seq, top_k, gather.as_deref())?;
+        all.push(out.into_iter().skip(first).collect());
+    }
+    Ok(all)
 }
 
 /// Greedy-generate an answer for every task and grade it. With `against`
@@ -541,7 +610,7 @@ fn run_tasks(
             }
             None => (None, text.chars().count()),
         };
-        runs.push(TaskRun { n_tokens: ids.len(), text, extracted, correct, diverge_at, same_prefix_chars });
+        runs.push(TaskRun { n_tokens: ids.len(), text, extracted, correct, diverge_at, same_prefix_chars, answer_kl: None });
         gens.push(ids);
         pb.inc(1);
     }

@@ -8,10 +8,10 @@
 $ kldrift compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K_M.gguf SmolLM2-135M-Q2_K.gguf --open
 
   model                 size  of ref   KL mean    KL p99    top-1     ΔPPL decode t/s  quality
-  F16                 269 MB    100%         0         0     100%        0      101.2  reference
-  Q8_0 ◆              143 MB     53%    0.0042     0.032    95.7%   +0.46%      177.0  near-lossless
-  Q4_K_M ◆            104 MB     39%    0.0434     0.372    88.3%   +3.98%      191.0  excellent
-  Q2_K ◆               86 MB     32%    0.2258     1.754    74.1%  +20.68%      209.0  degraded
+  F16                 269 MB    100%         0         0     100%        0       79.4  reference
+  Q8_0 ◆              143 MB     53%    0.0042     0.032    95.7%   +0.46%      119.3  noticeable
+  Q4_K_M ◆            104 MB     39%    0.0434     0.372    88.3%   +3.98%      120.4  degraded
+  Q2_K ◆               86 MB     32%    0.2258     1.754    74.1%  +20.68%      155.3  degraded
   ◆ = Pareto-optimal (nothing else is both smaller and closer to the reference)
 
   answers on 50 tasks (greedy, up to 64 tokens)
@@ -22,13 +22,21 @@ $ kldrift compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K
   Q2_K                 22/50       11       2         22%        ~3 tokens
   broken = the original answered correctly, this quant did not
 
+  calibrated tiers on 150 answers (answer verdict changed):
+    2% change at KL 0.0002 · 5% change at KL 0.0016 · 15% change at KL 0.0253
+  Q8_0             KL 0.0042 → ~7% of answers expected to change
+  Q4_K_M           KL 0.0434 → ~18% of answers expected to change
+  Q2_K             KL 0.2258 → ~32% of answers expected to change
+
   Q8_0 drifts most on russian (KL 0.0068)
   Q4_K_M drifts most on russian (KL 0.0690)
   Q2_K drifts most on russian (KL 0.3829)
 
-  → use Q8_0  (smallest model with mean KL < 0.05 and ≥ 90% top-1 agreement on your prompts,
+  → use Q8_0  (no candidate is excellent; this is the smallest with mean KL < 0.0253,
                breaking at most 10% of the answers the original gets right)
 ```
+
+Note the quality column: those tiers are not hard-coded. They come from fitting how often this particular model's answers actually changed (see [Calibration](#how-it-works)).
 
 ## Why
 
@@ -39,6 +47,7 @@ kldrift answers the questions that matter before you pick a quant:
 - **How far does it drift?** Mean, p99 and max KL divergence from the reference, per token.
 - **Does it still say the same thing?** Top-1 agreement, plus *confident flips*: positions where the original was more than 50% sure and the quant picked something else anyway.
 - **Does it still give the same answers?** Every model answers questions with known solutions (arithmetic, facts, code, Russian) from the exact same prompt tokens. kldrift counts answers the quant **broke** (the original was right, the quant is wrong), how many outputs are token-for-token identical, and how many tokens in the text starts to differ. Distribution metrics alone can't show this: in the run above Q8_0 is "near-lossless" by KL, yet it still broke 3 of the 31 answers the original got right.
+- **What counts as "fine" for *this* model?** Instead of fixed thresholds, kldrift fits a logistic curve P(answer changes | KL) on every answer it observed and puts the tier boundaries where 2%, 5% and 15% of answers are expected to change. Small models are fragile: for SmolLM2-135M even Q8_0's tiny KL of 0.004 is predicted to change ~7% of answers (8% were observed), so its tiers come out much stricter than generic rules of thumb.
 - **Where does it break first?** Breakdown by content type. In the run above every quant degrades about twice as fast on Russian text as on English or code, which is the kind of thing you only learn by measuring.
 - **What does it cost to run?** Prefill and decode speed, memory, and on Apple Silicon **energy per token** read from the SoC's own counters.
 - **Which one should I use?** The smallest quant that stays within your quality bar, plus the Pareto frontier of size vs. quality.
@@ -52,6 +61,7 @@ kldrift answers the questions that matter before you pick a quant:
 - **KL distribution** (CDF) per quant, so you can tell "slightly worse everywhere" apart from "fine except for rare catastrophes".
 - **By content type** bars: code, prose, math, other languages, structured data.
 - **Answers on real tasks**: correct / broken / fixed / identical per quant, and every changed answer side by side with the original's, with the point where the text diverges highlighted (e.g. `150 + 275 = 4`**`05`**).
+- **Calibrated tiers**: every answer as a dot (KL vs. changed / unchanged), the fitted curve, the tier bands it implies, and where each quant lands on it.
 - **Token explorer**: the actual text, each token tinted by how far the quant drifted there and underlined where the top token flipped. Hover any token to see the reference's top-5 next to the quant's top-5.
 - **Biggest disagreements**: the worst positions with their context.
 
@@ -121,10 +131,11 @@ Use your own tasks: add `.jsonl` files to `tasks/` (the file name becomes the ca
 1. **Teacher forcing.** Every prompt is tokenized once by the reference, and the *same token ids* go through every model, so positions line up exactly. kldrift refuses to compare models whose tokenizers disagree.
 2. **Coarsened KL.** At each position the reference keeps its top-k tokens (k = 64). Each quant reports its probabilities for exactly those tokens, and the rest of the vocabulary is pooled into one tail bucket on both sides. The KL divergence of these (k+1)-bucket distributions is, by the data-processing inequality, a **lower bound** on the full-vocabulary KL. It is tight in practice because the reference tail is tiny, and it means models never have to ship 150k-wide logit rows between processes.
 3. **Behaviour check.** Each model greedily answers the tasks, starting from identical prompt ids. Answers are graded automatically, compared with the reference's verdict (broken / fixed), and the first differing token is recorded. A quant is only recommended if it breaks at most 10% (configurable: `max_regression`) of the answers the original gets right.
-4. **Backends.**
+4. **Calibration.** Every quant also scores the reference's own answers under teacher forcing, which gives one point per (quant, task): x = mean per-token KL on that answer, y = did the quant's own answer change (right↔wrong; if verdicts almost never flip, "the text changed" is used instead). A two-parameter logistic regression, logit P = a + b·ln KL, is fitted by Newton's method, and the tier boundaries become the KL values where P = 2%, 5% and 15%. Calibration is skipped, and the defaults below are used, when there are fewer than 5 changed or 5 unchanged answers, or when changes don't increase with KL.
+5. **Backends.**
    - **llama.cpp**, in-process through [`llama-cpp-2`](https://crates.io/crates/llama-cpp-2): one batched decode per window with logits for every position, log-softmax and top-k in Rust.
    - **MLX**, through a small Python worker embedded in the binary that speaks JSON lines over stdin/stdout.
-5. **Energy on Apple Silicon.** A small Objective-C module ([`objc/kld_mac.m`](objc/kld_mac.m)) subscribes to the `Energy Model` channels of IOReport, the same counters `powermetrics` reads, without needing root. It samples CPU, GPU, ANE and DRAM energy around the decode loop and subtracts an idle baseline measured at start-up. It also reads the process `phys_footprint` (which includes Metal buffers in unified memory) and the chip name.
+6. **Energy on Apple Silicon.** A small Objective-C module ([`objc/kld_mac.m`](objc/kld_mac.m)) subscribes to the `Energy Model` channels of IOReport, the same counters `powermetrics` reads, without needing root. It samples CPU, GPU, ANE and DRAM energy around the decode loop and subtracts an idle baseline measured at start-up. It also reads the process `phys_footprint` (which includes Metal buffers in unified memory) and the chip name.
 
 ```
 src/
@@ -132,6 +143,7 @@ src/
   runner.rs      pipeline: reference pass, candidate passes, benchmarks
   metrics.rs     coarsened KL, top-1 agreement, confident flips, summaries
   tasks.rs       task loading, answer grading, broken/fixed/divergence stats
+  calibrate.rs   logistic fit of P(answer changes | KL) -> per-model tier thresholds
   dist.rs        log-softmax + top-k from raw logits
   backend/       llama.cpp (in-process) and MLX (worker) backends
   sys.rs         machine info, IOReport energy meter (FFI)
@@ -150,7 +162,7 @@ assets/          report template (vanilla JS + SVG, no dependencies)
 | noticeable | < 0.15 | visibly different outputs, reasoning may slip |
 | degraded | ≥ 0.15 | frequent wrong tokens, especially off-English |
 
-These thresholds are heuristics and can be changed in the `[thresholds]` section of a config. Compare quants of the *same* model on the *same* prompts. Absolute KL values are not comparable across model families.
+These are the **defaults**. When tasks are run (the default), they are replaced by thresholds calibrated on the model's own answers (see *How it works*), and the report shows the fitted curve. You can also set them by hand in the `[thresholds]` section of a config. Compare quants of the *same* model on the *same* prompts. Absolute KL values are not comparable across model families.
 
 ## Limitations
 

@@ -1,6 +1,7 @@
 //! kldrift - how much did quantization actually change your model?
 
 mod backend;
+mod calibrate;
 mod config;
 mod dist;
 mod metrics;

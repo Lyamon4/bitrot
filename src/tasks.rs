@@ -52,6 +52,10 @@ pub struct TaskRun {
     pub diverge_at: Option<usize>,
     /// Length in characters of the text shared with the reference's output.
     pub same_prefix_chars: usize,
+    /// Mean per-token KL of this model on the *reference's* answer
+    /// (teacher-forced). None for the reference and for empty answers.
+    #[serde(default)]
+    pub answer_kl: Option<f64>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

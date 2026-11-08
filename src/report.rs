@@ -108,6 +108,41 @@ pub fn print_summary(r: &Results) {
         println!("  {}", "broken = the original answered correctly, this quant did not".dimmed());
     }
 
+    match (&r.calibration, &r.calibration_note) {
+        (Some(c), _) => {
+            println!(
+                "\n  {} on {} answers ({}): {}",
+                "calibrated tiers".bold(),
+                c.n,
+                c.outcome,
+                c.levels
+                    .iter()
+                    .zip(c.kl_at)
+                    .map(|(p, kl)| format!("{:.0}% change at KL {}", p * 100.0, format!("{kl:.4}").bold()))
+                    .collect::<Vec<_>>()
+                    .join(" · ")
+            );
+            println!(
+                "  {}",
+                format!(
+                    "tiers: near-lossless < {:.4} < excellent < {:.4} < noticeable < {:.4} < degraded",
+                    c.kl_at[0], c.kl_at[1], c.kl_at[2]
+                )
+                .dimmed()
+            );
+            for cand in &r.candidates {
+                println!(
+                    "  {:<16} KL {:.4} → ~{:.0}% of answers expected to change",
+                    cand.model.spec.name,
+                    cand.summary.kl_mean,
+                    c.p_change(cand.summary.kl_mean) * 100.0
+                );
+            }
+        }
+        (None, Some(note)) => println!("\n  {}", format!("tiers use default thresholds: {note}").dimmed()),
+        _ => {}
+    }
+
     // Where each candidate breaks first.
     for c in &r.candidates {
         if let Some(w) = c
