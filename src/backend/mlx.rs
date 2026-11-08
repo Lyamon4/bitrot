@@ -128,4 +128,14 @@ impl Backend for MlxWorker {
     fn mem_bytes(&mut self) -> Option<u64> {
         self.call(json!({"op": "mem"})).ok()?.get("peak_bytes")?.as_u64()
     }
+
+    fn chat_prompt(&mut self, user: &str) -> Result<Vec<u32>> {
+        let v = self.call(json!({"op": "chat_prompt", "text": user}))?;
+        Ok(serde_json::from_value(v["ids"].clone())?)
+    }
+
+    fn generate(&mut self, prompt: &[u32], max_new: usize) -> Result<Vec<u32>> {
+        let v = self.call(json!({"op": "generate", "ids": prompt, "max_new": max_new}))?;
+        Ok(serde_json::from_value(v["ids"].clone())?)
+    }
 }

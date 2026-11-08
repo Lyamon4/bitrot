@@ -62,6 +62,14 @@ pub trait Backend {
 
     /// Memory currently held for this model, if the backend can tell.
     fn mem_bytes(&mut self) -> Option<u64>;
+
+    /// Token ids for a single user message wrapped in the model's chat
+    /// template (or the plain text if the model has none).
+    fn chat_prompt(&mut self, user: &str) -> Result<Vec<u32>>;
+
+    /// Greedy continuation of `prompt`, at most `max_new` tokens, stopping
+    /// at the model's end-of-generation token (which is not returned).
+    fn generate(&mut self, prompt: &[u32], max_new: usize) -> Result<Vec<u32>>;
 }
 
 pub fn open(spec: &ModelSpec, settings: &Settings) -> Result<Box<dyn Backend>> {

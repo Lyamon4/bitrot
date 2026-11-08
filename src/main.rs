@@ -7,6 +7,7 @@ mod metrics;
 mod report;
 mod runner;
 mod sys;
+mod tasks;
 
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
@@ -78,7 +79,16 @@ struct RunOpts {
     /// Skip the speed / memory / energy benchmark.
     #[arg(long)]
     no_bench: bool,
-    /// CPU threads for llama.cpp (default: all cores).
+    /// Task directory (`*.jsonl` with checkable answers).
+    #[arg(long)]
+    tasks: Option<PathBuf>,
+    /// Max tokens each model generates per task.
+    #[arg(long)]
+    gen_tokens: Option<usize>,
+    /// Skip the answer check on tasks.
+    #[arg(long)]
+    no_tasks: bool,
+    /// CPU threads for llama.cpp (default: one per physical core).
     #[arg(long)]
     threads: Option<usize>,
     /// Python with mlx-lm installed, for MLX models.
@@ -109,7 +119,14 @@ impl RunOpts {
         if let Some(v) = &self.python {
             s.python = v.clone();
         }
+        if let Some(p) = &self.tasks {
+            s.tasks = p.clone();
+        }
+        if let Some(v) = self.gen_tokens {
+            s.gen_tokens = v;
+        }
         s.no_bench |= self.no_bench;
+        s.no_tasks |= self.no_tasks;
     }
 }
 
@@ -136,13 +153,13 @@ fn dedupe_names(cfg: &mut Config) {
     }
 }
 
-fn default_prompts() -> PathBuf {
-    // Prefer ./prompts, then the prompts shipped next to the binary's crate.
-    let local = PathBuf::from("prompts");
+/// Prefer `./<name>`, then the copy shipped next to the crate's sources.
+fn bundled_dir(name: &str) -> PathBuf {
+    let local = PathBuf::from(name);
     if local.is_dir() {
         return local;
     }
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("prompts")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(name)
 }
 
 fn execute(mut cfg: Config, opts: &RunOpts) -> Result<()> {
@@ -179,7 +196,7 @@ fn main() -> Result<()> {
     match cli.command {
         Cmd::Compare { reference, candidates, opts } => {
             let mut cfg = Config {
-                settings: Settings { prompts: default_prompts(), ..Settings::default() },
+                settings: Settings { prompts: bundled_dir("prompts"), tasks: bundled_dir("tasks"), ..Settings::default() },
                 thresholds: Thresholds::default(),
                 reference: spec_from_arg(&reference),
                 candidates: candidates.iter().map(|c| spec_from_arg(c)).collect(),

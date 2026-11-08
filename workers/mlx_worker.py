@@ -151,6 +151,31 @@ def op_bench(req):
     return {"prefill_tok_s": prefill, "decode_tok_s": decode}
 
 
+def op_chat_prompt(req):
+    messages = [{"role": "user", "content": req["text"]}]
+    if getattr(tok, "chat_template", None):
+        ids = tok.apply_chat_template(messages, add_generation_prompt=True)
+        if isinstance(ids, str):
+            ids = tok.encode(ids, add_special_tokens=False)
+    else:
+        ids = tok.encode(req["text"])
+    return {"ids": list(ids)}
+
+
+def op_generate(req):
+    eos = set(getattr(tok, "eos_token_ids", None) or [tok.eos_token_id])
+    cache = make_prompt_cache(model)
+    logits = model(mx.array(req["ids"])[None], cache=cache)
+    out = []
+    for _ in range(int(req["max_new"])):
+        y = int(mx.argmax(logits[0, -1]).item())
+        if y in eos:
+            break
+        out.append(y)
+        logits = model(mx.array([[y]]), cache=cache)
+    return {"ids": out}
+
+
 def op_mem(_req):
     return {"peak_bytes": int(get_peak_memory()) if get_peak_memory else None}
 
@@ -162,6 +187,8 @@ OPS = {
     "eval": op_eval,
     "bench": op_bench,
     "mem": op_mem,
+    "chat_prompt": op_chat_prompt,
+    "generate": op_generate,
 }
 
 for line in sys.stdin:

@@ -1,0 +1,15 @@
+{"id": "add-1", "prompt": "What is 7 + 5? Answer with just the number.", "answer": "12", "check": "number"}
+{"id": "add-2", "prompt": "What is 23 + 19? Answer with just the number.", "answer": "42", "check": "number"}
+{"id": "add-3", "prompt": "What is 150 + 275? Answer with just the number.", "answer": "425", "check": "number"}
+{"id": "sub-1", "prompt": "What is 20 - 8? Answer with just the number.", "answer": "12", "check": "number"}
+{"id": "sub-2", "prompt": "What is 100 - 37? Answer with just the number.", "answer": "63", "check": "number"}
+{"id": "mul-1", "prompt": "What is 6 times 7? Answer with just the number.", "answer": "42", "check": "number"}
+{"id": "mul-2", "prompt": "What is 9 times 8? Answer with just the number.", "answer": "72", "check": "number"}
+{"id": "mul-3", "prompt": "What is 12 times 12? Answer with just the number.", "answer": "144", "check": "number"}
+{"id": "div-1", "prompt": "What is 56 divided by 7? Answer with just the number.", "answer": "8", "check": "number"}
+{"id": "div-2", "prompt": "What is 100 divided by 4? Answer with just the number.", "answer": "25", "check": "number"}
+{"id": "word-1", "prompt": "Tom has 3 apples and buys 4 more. How many apples does he have? Answer with just the number.", "answer": "7", "check": "number"}
+{"id": "word-2", "prompt": "A week has how many days? Answer with just the number.", "answer": "7", "check": "number"}
+{"id": "word-3", "prompt": "How many minutes are in one hour? Answer with just the number.", "answer": "60", "check": "number"}
+{"id": "word-4", "prompt": "How many legs does a spider have? Answer with just the number.", "answer": "8", "check": "number"}
+{"id": "word-5", "prompt": "How many months are in a year? Answer with just the number.", "answer": "12", "check": "number"}

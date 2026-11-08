@@ -6,6 +6,7 @@ use crate::config::{Config, ModelSpec, Settings, Thresholds};
 use crate::dist::PosOut;
 use crate::metrics::{self, Summary, Tier, TokenDiv};
 use crate::sys::{self, Machine, PowerMeter};
+use crate::tasks::{self, Task, TaskRun, TaskSection};
 use anyhow::{bail, Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
 use owo_colors::OwoColorize;
@@ -104,6 +105,8 @@ pub struct Results {
     pub reference: ModelResult,
     pub candidates: Vec<CandidateResult>,
     pub docs: Vec<DocView>,
+    #[serde(default)]
+    pub tasks: Option<TaskSection>,
     pub recommendation: Option<Recommendation>,
 }
 
@@ -148,10 +151,10 @@ fn windows(ids: &[u32], ctx: usize) -> Vec<std::ops::Range<usize>> {
     out
 }
 
-fn progress(len: usize, label: &str) -> ProgressBar {
+fn progress(len: usize, label: &str, unit: &str) -> ProgressBar {
     let pb = ProgressBar::new(len as u64);
     pb.set_style(
-        ProgressStyle::with_template("  {prefix:<14} {bar:28.cyan/blue} {pos}/{len} windows  {msg}")
+        ProgressStyle::with_template(&format!("  {{prefix:<14}} {{bar:28.cyan/blue}} {{pos}}/{{len}} {unit:<7}  {{msg}}"))
             .unwrap()
             .progress_chars("━╸─"),
     );
@@ -267,6 +270,17 @@ pub fn run(cfg: &Config) -> Result<Results> {
         None
     };
 
+    let task_list: Option<Vec<Task>> = if s.no_tasks {
+        None
+    } else if s.tasks.is_dir() {
+        let t = tasks::load(&s.tasks)?;
+        println!("  {} tasks with checkable answers, up to {} generated tokens each", t.len(), s.gen_tokens);
+        Some(t).filter(|t| !t.is_empty())
+    } else {
+        println!("  {}", format!("no task directory at {} - skipping the answer check", s.tasks.display()).dimmed());
+        None
+    };
+
     // ---- reference pass -------------------------------------------------
     println!("\n{} {}  {}", "reference".bold(), cfg.reference.name.bold().green(), cfg.reference.path.dimmed());
     let mut reference = backend::open(&cfg.reference, s)?;
@@ -282,7 +296,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
         .collect::<Result<_>>()?;
     let n_windows: usize = doc_ids.iter().map(|ids| windows(ids, s.ctx).len()).sum();
 
-    let pb = progress(n_windows, &cfg.reference.name);
+    let pb = progress(n_windows, &cfg.reference.name, "windows");
     let t0 = Instant::now();
     let mut ref_out = Vec::with_capacity(docs.len());
     for ids in &doc_ids {
@@ -305,6 +319,23 @@ pub fn run(cfg: &Config) -> Result<Results> {
     let bench_ids = bench_prompt(&doc_ids, s.bench_prompt_tokens);
     let ref_bench = if s.no_bench { None } else { Some(run_bench(reference.as_mut(), &bench_ids, s, &mut meter, idle_w)?) };
     let ref_result = ModelResult { spec: cfg.reference.clone(), info: reference.info().clone(), bench: ref_bench, ppl: ref_ppl };
+
+    // Prompts are formatted once, with the reference's chat template, and the
+    // same ids go to every model.
+    let mut task_section = None;
+    let mut task_prompts: Vec<Vec<u32>> = Vec::new();
+    let mut ref_gen: Vec<Vec<u32>> = Vec::new();
+    if let Some(list) = &task_list {
+        task_prompts = list.iter().map(|t| reference.chat_prompt(&t.prompt)).collect::<Result<_>>()?;
+        let (gen, runs) = run_tasks(reference.as_mut(), list, &task_prompts, s.gen_tokens, &cfg.reference.name, None)?;
+        let correct = runs.iter().filter(|r| r.correct).count();
+        println!("  tasks {}/{} correct", correct, runs.len());
+        ref_gen = gen;
+        let mut sec = TaskSection { items: list.clone(), gen_tokens: s.gen_tokens, ..Default::default() };
+        sec.summary.insert(cfg.reference.name.clone(), tasks::summarize(&runs, &runs));
+        sec.runs.insert(cfg.reference.name.clone(), runs);
+        task_section = Some(sec);
+    }
     drop(reference);
 
     // Reference top-k ids per position: what each candidate must score.
@@ -325,7 +356,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
                 cfg.reference.name
             );
         }
-        let pb = progress(n_windows, &spec.name);
+        let pb = progress(n_windows, &spec.name, "windows");
         let t0 = Instant::now();
         let mut all_divs: Vec<TokenDiv> = Vec::new();
         let mut cat_divs: BTreeMap<String, Vec<TokenDiv>> = BTreeMap::new();
@@ -357,6 +388,15 @@ pub fn run(cfg: &Config) -> Result<Results> {
 
         let bench = if s.no_bench { None } else { Some(run_bench(model.as_mut(), &bench_ids, s, &mut meter, idle_w)?) };
         let summary = metrics::summarize(&all_divs);
+        let mut task_line = String::new();
+        if let (Some(sec), Some(list)) = (task_section.as_mut(), &task_list) {
+            let ref_runs = sec.runs[&cfg.reference.name].clone();
+            let (_, runs) = run_tasks(model.as_mut(), list, &task_prompts, s.gen_tokens, &spec.name, Some((&ref_gen, &ref_runs)))?;
+            let ts = tasks::summarize(&runs, &ref_runs);
+            task_line = format!("  ·  tasks {}/{} ({} broken, {} identical)", ts.correct, ts.n, ts.regressions, ts.identical);
+            sec.summary.insert(spec.name.clone(), ts);
+            sec.runs.insert(spec.name.clone(), runs);
+        }
         let by_category = cat_divs
             .into_iter()
             .map(|(category, divs)| {
@@ -382,10 +422,11 @@ pub fn run(cfg: &Config) -> Result<Results> {
             .collect();
 
         println!(
-            "  KL mean {}  ·  top-1 {:.1}%  ·  ΔPPL {:+.2}%",
+            "  KL mean {}  ·  top-1 {:.1}%  ·  ΔPPL {:+.2}%{}",
             format!("{:.4}", summary.kl_mean).bold(),
             summary.top1_agreement * 100.0,
-            summary.ppl_delta_pct
+            summary.ppl_delta_pct,
+            task_line
         );
         cands.push(CandidateResult {
             model: ModelResult { spec: spec.clone(), info: model.info().clone(), bench, ppl: summary.ppl_cand },
@@ -398,7 +439,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
     }
 
     mark_pareto(&mut cands);
-    let recommendation = recommend(&cands, &cfg.thresholds);
+    let recommendation = recommend(&cands, &cfg.thresholds, task_section.as_ref(), &cfg.reference.name);
 
     Ok(Results {
         tool: "kldrift".into(),
@@ -412,6 +453,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
         reference: ref_result,
         candidates: cands,
         docs: views,
+        tasks: task_section,
         recommendation,
     })
 }
@@ -429,24 +471,40 @@ fn mark_pareto(cands: &mut [CandidateResult]) {
     }
 }
 
-fn recommend(cands: &[CandidateResult], t: &Thresholds) -> Option<Recommendation> {
+/// Share of the reference's correct answers this candidate broke.
+fn regression_rate(sec: Option<&TaskSection>, ref_name: &str, name: &str) -> Option<f64> {
+    let sec = sec?;
+    let ref_correct = sec.summary.get(ref_name)?.correct;
+    let s = sec.summary.get(name)?;
+    Some(if ref_correct == 0 { 0.0 } else { s.regressions as f64 / ref_correct as f64 })
+}
+
+fn recommend(cands: &[CandidateResult], t: &Thresholds, sec: Option<&TaskSection>, ref_name: &str) -> Option<Recommendation> {
+    let keeps_answers =
+        |c: &CandidateResult| regression_rate(sec, ref_name, &c.model.spec.name).is_none_or(|r| r <= t.max_regression);
     let smallest = |pred: &dyn Fn(&CandidateResult) -> bool| {
         cands.iter().filter(|c| pred(c)).min_by_key(|c| c.model.info.size_bytes)
     };
-    if let Some(c) = smallest(&|c| c.summary.kl_mean < t.excellent && c.summary.top1_agreement >= t.min_top1) {
+    let task_note = if sec.is_some() {
+        format!(", breaking at most {:.0}% of the answers the original gets right", t.max_regression * 100.0)
+    } else {
+        String::new()
+    };
+    if let Some(c) = smallest(&|c| c.summary.kl_mean < t.excellent && c.summary.top1_agreement >= t.min_top1 && keeps_answers(c)) {
         return Some(Recommendation {
             name: c.model.spec.name.clone(),
             reason: format!(
-                "smallest model with mean KL < {} and ≥ {:.0}% top-1 agreement on your prompts",
+                "smallest model with mean KL < {} and ≥ {:.0}% top-1 agreement on your prompts{}",
                 t.excellent,
-                t.min_top1 * 100.0
+                t.min_top1 * 100.0,
+                task_note
             ),
         });
     }
-    if let Some(c) = smallest(&|c| c.summary.kl_mean < t.noticeable) {
+    if let Some(c) = smallest(&|c| c.summary.kl_mean < t.noticeable && keeps_answers(c)) {
         return Some(Recommendation {
             name: c.model.spec.name.clone(),
-            reason: format!("no candidate is excellent; this is the smallest with mean KL < {}", t.noticeable),
+            reason: format!("no candidate is excellent; this is the smallest with mean KL < {}{}", t.noticeable, task_note),
         });
     }
     cands
@@ -456,6 +514,39 @@ fn recommend(cands: &[CandidateResult], t: &Thresholds) -> Option<Recommendation
             name: c.model.spec.name.clone(),
             reason: "every candidate degrades noticeably; this one is closest to the reference".into(),
         })
+}
+
+/// Greedy-generate an answer for every task and grade it. With `against`
+/// (the reference's token outputs and runs) also record where each output
+/// starts to differ from the reference's.
+fn run_tasks(
+    model: &mut dyn Backend,
+    list: &[Task],
+    prompts: &[Vec<u32>],
+    max_new: usize,
+    label: &str,
+    against: Option<(&[Vec<u32>], &[TaskRun])>,
+) -> Result<(Vec<Vec<u32>>, Vec<TaskRun>)> {
+    let pb = progress(list.len(), label, "tasks");
+    let t0 = Instant::now();
+    let mut gens = Vec::with_capacity(list.len());
+    let mut runs = Vec::with_capacity(list.len());
+    for (i, (task, prompt)) in list.iter().zip(prompts).enumerate() {
+        let ids = model.generate(prompt, max_new)?;
+        let text = model.pieces(&ids, true)?.concat();
+        let (extracted, correct) = tasks::grade(task, &text);
+        let (diverge_at, same_prefix_chars) = match against {
+            Some((ref_ids, ref_runs)) => {
+                (tasks::diverge_at(&ref_ids[i], &ids), tasks::common_prefix_chars(&ref_runs[i].text, &text))
+            }
+            None => (None, text.chars().count()),
+        };
+        runs.push(TaskRun { n_tokens: ids.len(), text, extracted, correct, diverge_at, same_prefix_chars });
+        gens.push(ids);
+        pb.inc(1);
+    }
+    pb.finish_with_message(format!("{:.1}s", t0.elapsed().as_secs_f64()));
+    Ok((gens, runs))
 }
 
 #[cfg(test)]

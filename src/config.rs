@@ -41,6 +41,12 @@ pub struct Settings {
     pub python: String,
     /// Skip speed / energy measurement.
     pub no_bench: bool,
+    /// Directory with `*.jsonl` tasks that have checkable answers.
+    pub tasks: PathBuf,
+    /// Max tokens each model may generate per task.
+    pub gen_tokens: usize,
+    /// Skip the generation / task check.
+    pub no_tasks: bool,
 }
 
 impl Default for Settings {
@@ -57,6 +63,9 @@ impl Default for Settings {
             gpu_layers: 999,
             python: if cfg!(windows) { "python".into() } else { "python3".into() },
             no_bench: false,
+            tasks: PathBuf::from("tasks"),
+            gen_tokens: 64,
+            no_tasks: false,
         }
     }
 }
@@ -70,11 +79,14 @@ pub struct Thresholds {
     pub noticeable: f64,
     /// Minimum top-1 agreement for a candidate to be recommended.
     pub min_top1: f64,
+    /// Max share of the reference's correct task answers a candidate may
+    /// break and still be recommended.
+    pub max_regression: f64,
 }
 
 impl Default for Thresholds {
     fn default() -> Self {
-        Self { near_lossless: 0.01, excellent: 0.05, noticeable: 0.15, min_top1: 0.90 }
+        Self { near_lossless: 0.01, excellent: 0.05, noticeable: 0.15, min_top1: 0.90, max_regression: 0.10 }
     }
 }
 
@@ -100,6 +112,9 @@ impl Config {
         let rel = |p: &str| crate::sys::clean_path(&base.join(p)).to_string_lossy().into_owned();
         if cfg.settings.prompts.is_relative() {
             cfg.settings.prompts = crate::sys::clean_path(&base.join(&cfg.settings.prompts));
+        }
+        if cfg.settings.tasks.is_relative() {
+            cfg.settings.tasks = crate::sys::clean_path(&base.join(&cfg.settings.tasks));
         }
         for m in std::iter::once(&mut cfg.reference).chain(cfg.candidates.iter_mut()) {
             if matches!(m.backend, BackendKind::Llama) && Path::new(&m.path).is_relative() {

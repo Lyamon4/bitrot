@@ -80,6 +80,34 @@ pub fn print_summary(r: &Results) {
     }
     println!("  {}", "◆ = Pareto-optimal (nothing else is both smaller and closer to the reference)".dimmed());
 
+    if let Some(t) = &r.tasks {
+        println!("\n{}", format!("  answers on {} tasks (greedy, up to {} tokens)", t.items.len(), t.gen_tokens).bold());
+        println!(
+            "  {}",
+            format!("{:<16} {:>9} {:>8} {:>7} {:>11} {:>16}", "model", "correct", "broken", "fixed", "identical", "differs after").dimmed()
+        );
+        let names = std::iter::once(&r.reference.spec.name).chain(r.candidates.iter().map(|c| &c.model.spec.name));
+        for (i, name) in names.enumerate() {
+            let Some(s) = t.summary.get(name) else { continue };
+            if i == 0 {
+                println!("  {:<16} {:>9} {:>8} {:>7} {:>11} {:>16}", name.bold(), format!("{}/{}", s.correct, s.n), "-", "-", "-", "-");
+                continue;
+            }
+            let broken = format!("{:>8}", s.regressions);
+            let broken = if s.regressions == 0 { broken.green().to_string() } else { broken.red().to_string() };
+            println!(
+                "  {:<16} {:>9} {} {:>7} {:>10.0}% {:>16}",
+                name,
+                format!("{}/{}", s.correct, s.n),
+                broken,
+                s.fixes,
+                s.identical as f64 / s.n.max(1) as f64 * 100.0,
+                s.median_diverge.map(|d| format!("~{d:.0} tokens")).unwrap_or_else(|| "never".into())
+            );
+        }
+        println!("  {}", "broken = the original answered correctly, this quant did not".dimmed());
+    }
+
     // Where each candidate breaks first.
     for c in &r.candidates {
         if let Some(w) = c

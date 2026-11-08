@@ -1,0 +1,15 @@
+{"id": "cap-fr", "prompt": "What is the capital of France? Answer in one word.", "answer": "Paris"}
+{"id": "cap-jp", "prompt": "What is the capital of Japan? Answer in one word.", "answer": "Tokyo"}
+{"id": "cap-it", "prompt": "What is the capital of Italy? Answer in one word.", "answer": "Rome"}
+{"id": "cap-de", "prompt": "What is the capital of Germany? Answer in one word.", "answer": "Berlin"}
+{"id": "cap-es", "prompt": "What is the capital of Spain? Answer in one word.", "answer": "Madrid"}
+{"id": "cap-ru", "prompt": "What is the capital of Russia? Answer in one word.", "answer": "Moscow"}
+{"id": "cap-uk", "prompt": "What is the capital of the United Kingdom? Answer in one word.", "answer": "London"}
+{"id": "cap-eg", "prompt": "What is the capital of Egypt? Answer in one word.", "answer": "Cairo"}
+{"id": "sci-water", "prompt": "What is the chemical formula of water?", "answer": "H2O", "accept": ["H₂O"]}
+{"id": "sci-planet", "prompt": "Which planet is known as the Red Planet? Answer in one word.", "answer": "Mars"}
+{"id": "sci-sun", "prompt": "What star is at the center of our solar system? Answer in one word.", "answer": "Sun"}
+{"id": "sci-boil", "prompt": "At what temperature in Celsius does water boil at sea level? Answer with just the number.", "answer": "100", "check": "number"}
+{"id": "lit-romeo", "prompt": "Who wrote Romeo and Juliet? Answer with the author's name only.", "answer": "Shakespeare"}
+{"id": "geo-ocean", "prompt": "What is the largest ocean on Earth? Answer in one or two words.", "answer": "Pacific"}
+{"id": "color-sky", "prompt": "What color is the sky on a clear day? Answer in one word.", "answer": "blue"}

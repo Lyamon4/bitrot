@@ -8,6 +8,8 @@
 
 [settings]
 prompts = "../prompts"
+tasks = "../tasks"
+gen_tokens = 64
 ctx = 512
 top_k = 64
 python = "python3"

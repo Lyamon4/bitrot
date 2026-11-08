@@ -13,11 +13,21 @@ $ kldrift compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K
   Q4_K_M ◆            104 MB     39%    0.0434     0.372    88.3%   +3.98%      191.0  excellent
   Q2_K ◆               86 MB     32%    0.2258     1.754    74.1%  +20.68%      209.0  degraded
   ◆ = Pareto-optimal (nothing else is both smaller and closer to the reference)
+
+  answers on 50 tasks (greedy, up to 64 tokens)
+  model              correct   broken   fixed   identical    differs after
+  F16                  31/50        -       -           -                -
+  Q8_0                 29/50        3       1         70%        ~7 tokens
+  Q4_K_M               29/50        4       2         44%        ~6 tokens
+  Q2_K                 22/50       11       2         22%        ~3 tokens
+  broken = the original answered correctly, this quant did not
+
   Q8_0 drifts most on russian (KL 0.0068)
   Q4_K_M drifts most on russian (KL 0.0690)
   Q2_K drifts most on russian (KL 0.3829)
 
-  → use Q8_0  (smallest model with mean KL < 0.05 and ≥ 90% top-1 agreement on your prompts)
+  → use Q8_0  (smallest model with mean KL < 0.05 and ≥ 90% top-1 agreement on your prompts,
+               breaking at most 10% of the answers the original gets right)
 ```
 
 ## Why
@@ -28,6 +38,7 @@ kldrift answers the questions that matter before you pick a quant:
 
 - **How far does it drift?** Mean, p99 and max KL divergence from the reference, per token.
 - **Does it still say the same thing?** Top-1 agreement, plus *confident flips*: positions where the original was more than 50% sure and the quant picked something else anyway.
+- **Does it still give the same answers?** Every model answers questions with known solutions (arithmetic, facts, code, Russian) from the exact same prompt tokens. kldrift counts answers the quant **broke** (the original was right, the quant is wrong), how many outputs are token-for-token identical, and how many tokens in the text starts to differ. Distribution metrics alone can't show this: in the run above Q8_0 is "near-lossless" by KL, yet it still broke 3 of the 31 answers the original got right.
 - **Where does it break first?** Breakdown by content type. In the run above every quant degrades about twice as fast on Russian text as on English or code, which is the kind of thing you only learn by measuring.
 - **What does it cost to run?** Prefill and decode speed, memory, and on Apple Silicon **energy per token** read from the SoC's own counters.
 - **Which one should I use?** The smallest quant that stays within your quality bar, plus the Pareto frontier of size vs. quality.
@@ -40,6 +51,7 @@ kldrift answers the questions that matter before you pick a quant:
 - **Quality vs. size** scatter with the Pareto frontier.
 - **KL distribution** (CDF) per quant, so you can tell "slightly worse everywhere" apart from "fine except for rare catastrophes".
 - **By content type** bars: code, prose, math, other languages, structured data.
+- **Answers on real tasks**: correct / broken / fixed / identical per quant, and every changed answer side by side with the original's, with the point where the text diverges highlighted (e.g. `150 + 275 = 4`**`05`**).
 - **Token explorer**: the actual text, each token tinted by how far the quant drifted there and underlined where the top token flipped. Hover any token to see the reference's top-5 next to the quant's top-5.
 - **Biggest disagreements**: the worst positions with their context.
 
@@ -72,6 +84,15 @@ kldrift report kldrift-out/results.json --open    # re-render a saved run
 
 Use your own prompts: put text files into `prompts/<category>/<name>.txt` and pass `--prompts`. The bundled set covers English prose, Russian prose, Rust and Python code, math, and JSON/tables/SQL/CSV.
 
+Use your own tasks: add `.jsonl` files to `tasks/` (the file name becomes the category), one task per line:
+
+```json
+{"id": "mul-1", "prompt": "What is 6 times 7? Answer with just the number.", "answer": "42", "check": "number"}
+{"id": "ru-cap", "prompt": "Какая столица Франции? Ответь одним словом.", "answer": "Париж", "accept": ["Paris"]}
+```
+
+`check` is `number` (last number in the output), `contains` (default: expected text near the start, case-insensitive) or `exact` (first line). Prompts are wrapped in the reference's chat template once, and the same token ids go to every model.
+
 | flag | default | meaning |
 |---|---|---|
 | `--ctx` | 512 | tokens per evaluation window |
@@ -79,6 +100,9 @@ Use your own prompts: put text files into `prompts/<category>/<name>.txt` and pa
 | `--max-tokens` | 1024 | cap per prompt file |
 | `--threads` | physical cores | llama.cpp CPU threads |
 | `--no-bench` | off | skip speed, memory and energy |
+| `--tasks` | `tasks/` | directory with `.jsonl` tasks |
+| `--gen-tokens` | 64 | max tokens generated per task |
+| `--no-tasks` | off | skip the answer check |
 | `--python` | `python3` | interpreter with `mlx-lm`, for MLX models |
 
 ## How it works
@@ -96,16 +120,18 @@ Use your own prompts: put text files into `prompts/<category>/<name>.txt` and pa
 
 1. **Teacher forcing.** Every prompt is tokenized once by the reference, and the *same token ids* go through every model, so positions line up exactly. kldrift refuses to compare models whose tokenizers disagree.
 2. **Coarsened KL.** At each position the reference keeps its top-k tokens (k = 64). Each quant reports its probabilities for exactly those tokens, and the rest of the vocabulary is pooled into one tail bucket on both sides. The KL divergence of these (k+1)-bucket distributions is, by the data-processing inequality, a **lower bound** on the full-vocabulary KL. It is tight in practice because the reference tail is tiny, and it means models never have to ship 150k-wide logit rows between processes.
-3. **Backends.**
+3. **Behaviour check.** Each model greedily answers the tasks, starting from identical prompt ids. Answers are graded automatically, compared with the reference's verdict (broken / fixed), and the first differing token is recorded. A quant is only recommended if it breaks at most 10% (configurable: `max_regression`) of the answers the original gets right.
+4. **Backends.**
    - **llama.cpp**, in-process through [`llama-cpp-2`](https://crates.io/crates/llama-cpp-2): one batched decode per window with logits for every position, log-softmax and top-k in Rust.
    - **MLX**, through a small Python worker embedded in the binary that speaks JSON lines over stdin/stdout.
-4. **Energy on Apple Silicon.** A small Objective-C module ([`objc/kld_mac.m`](objc/kld_mac.m)) subscribes to the `Energy Model` channels of IOReport, the same counters `powermetrics` reads, without needing root. It samples CPU, GPU, ANE and DRAM energy around the decode loop and subtracts an idle baseline measured at start-up. It also reads the process `phys_footprint` (which includes Metal buffers in unified memory) and the chip name.
+5. **Energy on Apple Silicon.** A small Objective-C module ([`objc/kld_mac.m`](objc/kld_mac.m)) subscribes to the `Energy Model` channels of IOReport, the same counters `powermetrics` reads, without needing root. It samples CPU, GPU, ANE and DRAM energy around the decode loop and subtracts an idle baseline measured at start-up. It also reads the process `phys_footprint` (which includes Metal buffers in unified memory) and the chip name.
 
 ```
 src/
   main.rs        CLI (compare / run / report)
   runner.rs      pipeline: reference pass, candidate passes, benchmarks
   metrics.rs     coarsened KL, top-1 agreement, confident flips, summaries
+  tasks.rs       task loading, answer grading, broken/fixed/divergence stats
   dist.rs        log-softmax + top-k from raw logits
   backend/       llama.cpp (in-process) and MLX (worker) backends
   sys.rs         machine info, IOReport energy meter (FFI)
@@ -128,7 +154,7 @@ These thresholds are heuristics and can be changed in the `[thresholds]` section
 
 ## Limitations
 
-- KL is measured under teacher forcing (scoring known text), not free generation. That makes runs exact and reproducible, but it does not capture errors compounding over long generations.
+- KL is measured under teacher forcing (scoring known text), which makes it exact and reproducible. The task check covers free generation, but only for short answers. Small task sets are noisy: with 50 tasks one answer is 2 percentage points.
 - Energy is package-wide (the whole SoC), not per process. Close heavy apps for clean numbers.
 - IOReport is a private Apple interface. If a future macOS changes it, energy reporting switches off and everything else keeps working.
 

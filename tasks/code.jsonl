@@ -1,0 +1,10 @@
+{"id": "py-def", "prompt": "Which Python keyword is used to define a function? Answer with the keyword only.", "answer": "def"}
+{"id": "py-len", "prompt": "Which built-in Python function returns the number of items in a list? Answer with the function name only.", "answer": "len"}
+{"id": "py-print", "prompt": "Which Python function prints text to the console? Answer with the function name only.", "answer": "print"}
+{"id": "rs-fn", "prompt": "Which keyword declares a function in Rust? Answer with the keyword only.", "answer": "fn"}
+{"id": "rs-mut", "prompt": "Which Rust keyword makes a variable mutable? Answer with the keyword only.", "answer": "mut"}
+{"id": "js-const", "prompt": "Which JavaScript keyword declares a constant? Answer with the keyword only.", "answer": "const"}
+{"id": "sql-select", "prompt": "Which SQL keyword is used to read rows from a table? Answer with the keyword only.", "answer": "SELECT"}
+{"id": "git-commit", "prompt": "Which git command records staged changes to the repository? Answer with the command only.", "answer": "commit"}
+{"id": "html-link", "prompt": "Which HTML tag creates a hyperlink? Answer with the tag name only.", "answer": "a", "check": "exact", "accept": ["<a>", "<a"]}
+{"id": "bin-2", "prompt": "What is the binary number 101 in decimal? Answer with just the number.", "answer": "5", "check": "number"}
