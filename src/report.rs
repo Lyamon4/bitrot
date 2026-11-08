@@ -36,6 +36,96 @@ fn tier_cell(t: Tier) -> String {
     }
 }
 
+fn ci_pct(i: &crate::stats::Interval) -> String {
+    format!("{:.1}% [{:.1}–{:.1}]", i.est * 100.0, i.lo * 100.0, i.hi * 100.0)
+}
+
+fn verdict(i: &crate::stats::Interval) -> String {
+    if i.significant() {
+        "real difference".red().to_string()
+    } else {
+        "could be noise".dimmed().to_string()
+    }
+}
+
+fn print_stats(st: &crate::stats::Stats) {
+    println!(
+        "\n{}",
+        format!(
+            "  how sure are we? ({:.0}% bootstrap intervals, {} resamples, {}-token blocks)",
+            st.level * 100.0,
+            st.replicates,
+            st.block_tokens
+        )
+        .bold()
+    );
+    for c in &st.candidates {
+        let mut line = format!(
+            "  {:<16} KL {:.4} [{:.4}–{:.4}] · top-1 {}",
+            c.name,
+            c.kl_mean.est,
+            c.kl_mean.lo,
+            c.kl_mean.hi,
+            ci_pct(&c.top1)
+        );
+        if let Some(a) = &c.accuracy {
+            line += &format!(" · correct {}", ci_pct(a));
+        }
+        if let Some(p) = &c.p_change {
+            line += &format!(" · answers changed ~{}", ci_pct(p));
+        }
+        println!("{line}");
+    }
+    for p in &st.pairs {
+        let mut line = format!(
+            "  {:<22} KL {:+.4} [{:+.4}, {:+.4}] {}",
+            format!("{} vs {}", p.smaller, p.larger),
+            p.kl_diff.est,
+            p.kl_diff.lo,
+            p.kl_diff.hi,
+            verdict(&p.kl_diff)
+        );
+        if let Some(a) = &p.acc_diff {
+            line += &format!(
+                " · correct {:+.0}% [{:+.0}, {:+.0}] {}",
+                a.est * 100.0,
+                a.lo * 100.0,
+                a.hi * 100.0,
+                verdict(a)
+            );
+        }
+        println!("{line}");
+    }
+    if let Some(at) = &st.kl_at {
+        println!(
+            "  {}",
+            format!(
+                "tier boundaries: excellent < {:.4} [{:.4}–{:.4}], noticeable < {:.4} [{:.4}–{:.4}]{}",
+                at[1].est,
+                at[1].lo,
+                at[1].hi,
+                at[2].est,
+                at[2].lo,
+                at[2].hi,
+                if st.calibration_failures > 0 {
+                    format!(" ({} resamples could not be re-fitted)", st.calibration_failures)
+                } else {
+                    String::new()
+                }
+            )
+            .dimmed()
+        );
+    }
+    println!(
+        "  recommendation stability: {}",
+        st.stability
+            .iter()
+            .map(|(n, f)| format!("{} {:.0}%", n, f * 100.0))
+            .collect::<Vec<_>>()
+            .join(" · ")
+    );
+}
+
 pub fn print_summary(r: &Results) {
     let ref_size = r.reference.info.size_bytes.max(1) as f64;
     println!("\n{}", "  results".bold());
@@ -141,6 +231,10 @@ pub fn print_summary(r: &Results) {
         }
         (None, Some(note)) => println!("\n  {}", format!("tiers use default thresholds: {note}").dimmed()),
         _ => {}
+    }
+
+    if let Some(st) = &r.stats {
+        print_stats(st);
     }
 
     // Where each candidate breaks first.

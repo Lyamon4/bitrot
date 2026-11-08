@@ -28,6 +28,12 @@ $ kldrift compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K
   Q4_K_M           KL 0.0434 → ~18% of answers expected to change
   Q2_K             KL 0.2258 → ~32% of answers expected to change
 
+  how sure are we? (95% bootstrap intervals, 1000 resamples, 32-token blocks)
+  Q4_K_M vs Q8_0         KL +0.0392 [+0.0354, +0.0425] real difference · correct +0% [-12, +10] could be noise
+  Q2_K vs Q8_0           KL +0.2216 [+0.1988, +0.2435] real difference · correct -14% [-26, -4] real difference
+  Q2_K vs Q4_K_M         KL +0.1824 [+0.1618, +0.2011] real difference · correct -14% [-26, -4] real difference
+  recommendation stability: Q8_0 94% · Q4_K_M 6%
+
   Q8_0 drifts most on russian (KL 0.0068)
   Q4_K_M drifts most on russian (KL 0.0690)
   Q2_K drifts most on russian (KL 0.3829)
@@ -48,6 +54,7 @@ kldrift answers the questions that matter before you pick a quant:
 - **Does it still say the same thing?** Top-1 agreement, plus *confident flips*: positions where the original was more than 50% sure and the quant picked something else anyway.
 - **Does it still give the same answers?** Every model answers questions with known solutions (arithmetic, facts, code, Russian) from the exact same prompt tokens. kldrift counts answers the quant **broke** (the original was right, the quant is wrong), how many outputs are token-for-token identical, and how many tokens in the text starts to differ. Distribution metrics alone can't show this: in the run above Q8_0 is "near-lossless" by KL, yet it still broke 3 of the 31 answers the original got right.
 - **What counts as "fine" for *this* model?** Instead of fixed thresholds, kldrift fits a logistic curve P(answer changes | KL) on every answer it observed and puts the tier boundaries where 2%, 5% and 15% of answers are expected to change. Small models are fragile: for SmolLM2-135M even Q8_0's tiny KL of 0.004 is predicted to change ~7% of answers (8% were observed), so its tiers come out much stricter than generic rules of thumb.
+- **Is the difference real or noise?** Every number gets a 95% bootstrap interval, every pair of quants gets a paired test, and the whole recommendation is re-run on 1000 resamples. Above: Q4_K_M drifts measurably more than Q8_0, but on 50 tasks its answers are *not* distinguishably worse. Q2_K's are, and the Q8_0 pick holds in 94% of resamples.
 - **Where does it break first?** Breakdown by content type. In the run above every quant degrades about twice as fast on Russian text as on English or code, which is the kind of thing you only learn by measuring.
 - **What does it cost to run?** Prefill and decode speed, memory, and on Apple Silicon **energy per token** read from the SoC's own counters.
 - **Which one should I use?** The smallest quant that stays within your quality bar, plus the Pareto frontier of size vs. quality.
@@ -61,6 +68,7 @@ kldrift answers the questions that matter before you pick a quant:
 - **KL distribution** (CDF) per quant, so you can tell "slightly worse everywhere" apart from "fine except for rare catastrophes".
 - **By content type** bars: code, prose, math, other languages, structured data.
 - **Answers on real tasks**: correct / broken / fixed / identical per quant, and every changed answer side by side with the original's, with the point where the text diverges highlighted (e.g. `150 + 275 = 4`**`05`**).
+- **How sure are we?**: intervals for every metric, "real difference / could be noise" for every pair of quants, and a bar showing how often each quant wins the recommendation across resamples.
 - **Calibrated tiers**: every answer as a dot (KL vs. changed / unchanged), the fitted curve, the tier bands it implies, and where each quant lands on it.
 - **Token explorer**: the actual text, each token tinted by how far the quant drifted there and underlined where the top token flipped. Hover any token to see the reference's top-5 next to the quant's top-5.
 - **Biggest disagreements**: the worst positions with their context.
@@ -113,6 +121,7 @@ Use your own tasks: add `.jsonl` files to `tasks/` (the file name becomes the ca
 | `--tasks` | `tasks/` | directory with `.jsonl` tasks |
 | `--gen-tokens` | 64 | max tokens generated per task |
 | `--no-tasks` | off | skip the answer check |
+| `--bootstrap` | 1000 | resamples for confidence intervals (0 = off) |
 | `--python` | `python3` | interpreter with `mlx-lm`, for MLX models |
 
 ## How it works
@@ -132,10 +141,11 @@ Use your own tasks: add `.jsonl` files to `tasks/` (the file name becomes the ca
 2. **Coarsened KL.** At each position the reference keeps its top-k tokens (k = 64). Each quant reports its probabilities for exactly those tokens, and the rest of the vocabulary is pooled into one tail bucket on both sides. The KL divergence of these (k+1)-bucket distributions is, by the data-processing inequality, a **lower bound** on the full-vocabulary KL. It is tight in practice because the reference tail is tiny, and it means models never have to ship 150k-wide logit rows between processes.
 3. **Behaviour check.** Each model greedily answers the tasks, starting from identical prompt ids. Answers are graded automatically, compared with the reference's verdict (broken / fixed), and the first differing token is recorded. A quant is only recommended if it breaks at most 10% (configurable: `max_regression`) of the answers the original gets right.
 4. **Calibration.** Every quant also scores the reference's own answers under teacher forcing, which gives one point per (quant, task): x = mean per-token KL on that answer, y = did the quant's own answer change (right↔wrong; if verdicts almost never flip, "the text changed" is used instead). A two-parameter logistic regression, logit P = a + b·ln KL, is fitted by Newton's method, and the tier boundaries become the KL values where P = 2%, 5% and 15%. Calibration is skipped, and the defaults below are used, when there are fewer than 5 changed or 5 unchanged answers, or when changes don't increase with KL.
-5. **Backends.**
+5. **Uncertainty.** A paired bootstrap (1000 resamples, `--bootstrap N`, 0 = off). Prompt tokens are resampled in 32-token blocks because neighbouring tokens are correlated, and tasks are resampled individually. Each replicate evaluates every quant on the same resample (so differences are paired), re-fits the calibration, and re-runs the recommendation rule. The report shows percentile intervals, which pairwise differences exclude zero, and how often each quant would have been picked. Per-block sums are precomputed, so 1000 replicates take milliseconds.
+6. **Backends.**
    - **llama.cpp**, in-process through [`llama-cpp-2`](https://crates.io/crates/llama-cpp-2): one batched decode per window with logits for every position, log-softmax and top-k in Rust.
    - **MLX**, through a small Python worker embedded in the binary that speaks JSON lines over stdin/stdout.
-6. **Energy on Apple Silicon.** A small Objective-C module ([`objc/kld_mac.m`](objc/kld_mac.m)) subscribes to the `Energy Model` channels of IOReport, the same counters `powermetrics` reads, without needing root. It samples CPU, GPU, ANE and DRAM energy around the decode loop and subtracts an idle baseline measured at start-up. It also reads the process `phys_footprint` (which includes Metal buffers in unified memory) and the chip name.
+7. **Energy on Apple Silicon.** A small Objective-C module ([`objc/kld_mac.m`](objc/kld_mac.m)) subscribes to the `Energy Model` channels of IOReport, the same counters `powermetrics` reads, without needing root. It samples CPU, GPU, ANE and DRAM energy around the decode loop and subtracts an idle baseline measured at start-up. It also reads the process `phys_footprint` (which includes Metal buffers in unified memory) and the chip name.
 
 ```
 src/
@@ -144,6 +154,8 @@ src/
   metrics.rs     coarsened KL, top-1 agreement, confident flips, summaries
   tasks.rs       task loading, answer grading, broken/fixed/divergence stats
   calibrate.rs   logistic fit of P(answer changes | KL) -> per-model tier thresholds
+  stats.rs       paired block bootstrap: intervals, pairwise tests, recommendation stability
+  recommend.rs   the recommendation rule as a pure function (re-run inside the bootstrap)
   dist.rs        log-softmax + top-k from raw logits
   backend/       llama.cpp (in-process) and MLX (worker) backends
   sys.rs         machine info, IOReport energy meter (FFI)

@@ -94,6 +94,30 @@ fn kl_for(a: f64, b: f64, p: f64) -> f64 {
     (((p / (1.0 - p)).ln() - a) / b).exp()
 }
 
+/// Fit on raw (KL, changed) pairs. Returns (a, b, KL at each of [`LEVELS`])
+/// or None if the fit fails or is not increasing in KL.
+pub fn fit_points(kl: &[f64], changed: &[bool]) -> Option<(f64, f64, [f64; 3])> {
+    let x: Vec<f64> = kl.iter().map(|k| k.max(KL_FLOOR).ln()).collect();
+    let (a, b) = fit_logistic(&x, changed)?;
+    if b <= 0.0 {
+        return None;
+    }
+    let kl_at = LEVELS.map(|p| kl_for(a, b, p));
+    kl_at.iter().all(|k| k.is_finite() && *k > 0.0).then_some((a, b, kl_at))
+}
+
+pub fn predict(a: f64, b: f64, kl: f64) -> f64 {
+    sigmoid(a + b * kl.max(KL_FLOOR).ln())
+}
+
+impl Calibration {
+    /// True if the outcome is "right/wrong verdict changed", false if it is
+    /// "the text changed".
+    pub fn uses_verdict(&self) -> bool {
+        self.outcome.contains("verdict")
+    }
+}
+
 /// Build the calibration from task results, or explain why it is not possible.
 pub fn calibrate(sec: &TaskSection, ref_name: &str) -> Result<Calibration, String> {
     let ref_runs = sec.runs.get(ref_name).ok_or("no reference task runs")?;

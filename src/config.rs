@@ -47,6 +47,8 @@ pub struct Settings {
     pub gen_tokens: usize,
     /// Skip the generation / task check.
     pub no_tasks: bool,
+    /// Bootstrap resamples for confidence intervals (0 = off).
+    pub bootstrap: usize,
 }
 
 impl Default for Settings {
@@ -66,6 +68,7 @@ impl Default for Settings {
             tasks: PathBuf::from("tasks"),
             gen_tokens: 64,
             no_tasks: false,
+            bootstrap: 1000,
         }
     }
 }

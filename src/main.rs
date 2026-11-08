@@ -5,8 +5,10 @@ mod calibrate;
 mod config;
 mod dist;
 mod metrics;
+mod recommend;
 mod report;
 mod runner;
+mod stats;
 mod sys;
 mod tasks;
 
@@ -89,6 +91,9 @@ struct RunOpts {
     /// Skip the answer check on tasks.
     #[arg(long)]
     no_tasks: bool,
+    /// Bootstrap resamples for confidence intervals (0 = off).
+    #[arg(long)]
+    bootstrap: Option<usize>,
     /// CPU threads for llama.cpp (default: one per physical core).
     #[arg(long)]
     threads: Option<usize>,
@@ -128,6 +133,9 @@ impl RunOpts {
         }
         s.no_bench |= self.no_bench;
         s.no_tasks |= self.no_tasks;
+        if let Some(v) = self.bootstrap {
+            s.bootstrap = v;
+        }
     }
 }
 

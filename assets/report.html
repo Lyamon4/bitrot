@@ -152,7 +152,8 @@ function render() {
   if (recC) {
     h += `<div class="panel verdict">
       <div class="big">${esc(rec.name)}</div>
-      <div><b>Use this one.</b> ${gb(recC.model.info.size_bytes)} (${pct(recC.model.info.size_bytes / ref, 0)} of the reference),
+      <div><b>Use this one.</b>${D.stats ? (() => { const st = D.stats.stability.find(x => x[0] === rec.name); return st ? ` <span class="tier ${st[1] >= 0.8 ? "t-near_lossless" : "t-noticeable"}">same pick in ${pct(st[1], 0)} of resamples</span>` : ""; })() : ""}
+      ${gb(recC.model.info.size_bytes)} (${pct(recC.model.info.size_bytes / ref, 0)} of the reference),
       mean KL ${fmtKL(recC.summary.kl_mean)}, picks the same next token as the reference ${pct(recC.summary.top1_agreement)} of the time.
       <p>${esc(rec.reason)}</p></div></div>`;
   }
@@ -183,6 +184,38 @@ function render() {
       <td><span class="tier t-${c.tier}">${TIER[c.tier]}</span></td></tr>`;
   });
   h += `</tbody></table></div>`;
+
+  // ---- uncertainty ----
+  const ST = D.stats;
+  if (ST) {
+    const ciKL = i => `${fmtKL(i.est)} <span class="muted">[${fmtKL(i.lo)} – ${fmtKL(i.hi)}]</span>`;
+    const ciP = i => `${pct(i.est)} <span class="muted">[${pct(i.lo)} – ${pct(i.hi)}]</span>`;
+    const sig = i => i.lo > 0 || i.hi < 0
+      ? '<span class="tier t-degraded">real difference</span>'
+      : '<span class="tier t-reference">could be noise</span>';
+    const diff = (i, f) => `${f(i.est)} <span class="muted">[${f(i.lo)}, ${f(i.hi)}]</span>`;
+    const sKL = v => (v >= 0 ? "+" : "") + fmtKL(Math.abs(v)).replace(/^/, v < 0 ? "−" : "");
+    const sP = v => (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(0) + "%";
+    h += `<h2>How sure are we?</h2><div class="panel">
+      <p class="chart-title">${pct(ST.level, 0)} bootstrap intervals</p>
+      <p class="chart-note">${ST.replicates} resamples of the data: prompt tokens in blocks of ${ST.block_tokens} (neighbouring tokens are not independent), tasks one by one.
+      All quants are measured on the same resample, so comparisons are paired. A difference whose interval excludes zero is unlikely to be noise.</p>
+      <div class="scroll"><table><thead><tr><th>model</th><th>KL mean</th><th>top-1 agree</th>${ST.candidates[0] && ST.candidates[0].accuracy ? "<th>correct answers</th>" : ""}${ST.candidates[0] && ST.candidates[0].p_change ? "<th>answers expected to change</th>" : ""}</tr></thead><tbody>
+      ${ST.candidates.map((c, i) => `<tr><td><span class="swatch" style="background:${color(i)}"></span><b>${esc(c.name)}</b></td><td class="mono">${ciKL(c.kl_mean)}</td><td class="mono">${ciP(c.top1)}</td>${c.accuracy ? `<td class="mono">${ciP(c.accuracy)}</td>` : ""}${c.p_change ? `<td class="mono">${ciP(c.p_change)}</td>` : ""}</tr>`).join("")}
+      </tbody></table></div>
+      <p class="chart-title" style="margin-top:22px">Is the smaller quant really worse?</p>
+      <div class="scroll"><table><thead><tr><th>comparison</th><th>Δ KL mean</th><th></th>${ST.pairs[0] && ST.pairs[0].acc_diff ? "<th>Δ correct answers</th><th></th>" : ""}</tr></thead><tbody>
+      ${ST.pairs.map(p => `<tr><td><b>${esc(p.smaller)}</b> <span class="muted">vs</span> <b>${esc(p.larger)}</b></td><td class="mono">${diff(p.kl_diff, sKL)}</td><td>${sig(p.kl_diff)}</td>${p.acc_diff ? `<td class="mono">${diff(p.acc_diff, sP)}</td><td>${sig(p.acc_diff)}</td>` : ""}</tr>`).join("")}
+      </tbody></table></div>
+      <p class="chart-title" style="margin-top:22px">How stable is the recommendation?</p>
+      <p class="chart-note">The whole decision, including re-fitting the calibrated tiers, re-run on every resample.</p>
+      <div style="display:flex;border-radius:6px;overflow:hidden;height:26px">${ST.stability.map(([n, f]) => {
+        const i = C.findIndex(c => c.model.spec.name === n);
+        return `<div title="${esc(n)}: ${pct(f)}" style="width:${f * 100}%;background:${i >= 0 ? color(i) : "var(--line)"};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap">${f > 0.08 ? `${esc(n)} ${pct(f, 0)}` : ""}</div>`;
+      }).join("")}</div>
+      ${ST.kl_at ? `<div class="facts" style="margin-top:14px">${["near-lossless", "excellent", "noticeable"].map((t, i) => `<span class="fact">${t} below <b class="mono">KL ${fmtKL(ST.kl_at[i].est)}</b> <span class="mono">[${fmtKL(ST.kl_at[i].lo)} – ${fmtKL(ST.kl_at[i].hi)}]</span></span>`).join("")}</div>` : ""}
+    </div>`;
+  }
 
   // ---- charts ----
   h += `<h2>Trade-offs</h2><div class="grid2">

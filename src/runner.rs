@@ -7,6 +7,8 @@ use crate::dist::PosOut;
 use crate::metrics::{self, Summary, Tier, TokenDiv};
 use crate::sys::{self, Machine, PowerMeter};
 use crate::calibrate::{self, Calibration};
+use crate::recommend;
+use crate::stats;
 use crate::tasks::{self, Task, TaskRun, TaskSection};
 use anyhow::{bail, Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -114,6 +116,9 @@ pub struct Results {
     pub docs: Vec<DocView>,
     #[serde(default)]
     pub tasks: Option<TaskSection>,
+    /// Bootstrap confidence intervals and recommendation stability.
+    #[serde(default)]
+    pub stats: Option<stats::Stats>,
     pub recommendation: Option<Recommendation>,
 }
 
@@ -355,6 +360,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
 
     // ---- candidates -----------------------------------------------------
     let mut cands = Vec::new();
+    let mut cand_divs: Vec<Vec<TokenDiv>> = Vec::new();
     for spec in &cfg.candidates {
         println!("\n{} {}  {}", "candidate".bold(), spec.name.bold().yellow(), spec.path.dimmed());
         let mut model = backend::open(spec, s)?;
@@ -397,6 +403,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
 
         let bench = if s.no_bench { None } else { Some(run_bench(model.as_mut(), &bench_ids, s, &mut meter, idle_w)?) };
         let summary = metrics::summarize(&all_divs);
+        cand_divs.push(all_divs);
         let mut task_line = String::new();
         if let (Some(sec), Some(list)) = (task_section.as_mut(), &task_list) {
             let ref_runs = sec.runs[&cfg.reference.name].clone();
@@ -476,6 +483,31 @@ pub fn run(cfg: &Config) -> Result<Results> {
     mark_pareto(&mut cands);
     let recommendation = recommend(&cands, &thresholds, task_section.as_ref(), &cfg.reference.name);
 
+    // ---- uncertainty ----------------------------------------------------
+    let stats = (s.bootstrap > 0).then(|| {
+        let t0 = Instant::now();
+        let ref_runs = task_section.as_ref().map(|sec| sec.runs[&cfg.reference.name].as_slice());
+        let input = stats::Input {
+            names: cands.iter().map(|c| c.model.spec.name.clone()).collect(),
+            sizes: cands.iter().map(|c| c.model.info.size_bytes).collect(),
+            divs: cand_divs.iter().map(|d| d.as_slice()).collect(),
+            doc_lens: ref_out.iter().map(|d| d.len()).collect(),
+            ref_runs,
+            cand_runs: match &task_section {
+                Some(sec) => cands.iter().map(|c| sec.runs[&c.model.spec.name].as_slice()).collect(),
+                None => Vec::new(),
+            },
+            calibration: calibration.as_ref(),
+            base: &cfg.thresholds,
+            replicates: s.bootstrap,
+            seed: 0x6b6c_6472_6966_7421,
+        };
+        let st = stats::bootstrap(&input);
+        println!("
+  {} bootstrap resamples in {:.1}s", st.replicates, t0.elapsed().as_secs_f64());
+        st
+    });
+
     Ok(Results {
         tool: "kldrift".into(),
         version: env!("CARGO_PKG_VERSION").into(),
@@ -491,6 +523,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
         candidates: cands,
         docs: views,
         tasks: task_section,
+        stats,
         recommendation,
     })
 }
@@ -516,41 +549,38 @@ fn regression_rate(sec: Option<&TaskSection>, ref_name: &str, name: &str) -> Opt
     Some(if ref_correct == 0 { 0.0 } else { s.regressions as f64 / ref_correct as f64 })
 }
 
+fn rec_inputs(cands: &[CandidateResult], sec: Option<&TaskSection>, ref_name: &str) -> Vec<recommend::Cand> {
+    cands
+        .iter()
+        .map(|c| recommend::Cand {
+            size: c.model.info.size_bytes,
+            kl_mean: c.summary.kl_mean,
+            top1: c.summary.top1_agreement,
+            regression_rate: regression_rate(sec, ref_name, &c.model.spec.name),
+        })
+        .collect()
+}
+
 fn recommend(cands: &[CandidateResult], t: &Thresholds, sec: Option<&TaskSection>, ref_name: &str) -> Option<Recommendation> {
-    let keeps_answers =
-        |c: &CandidateResult| regression_rate(sec, ref_name, &c.model.spec.name).is_none_or(|r| r <= t.max_regression);
-    let smallest = |pred: &dyn Fn(&CandidateResult) -> bool| {
-        cands.iter().filter(|c| pred(c)).min_by_key(|c| c.model.info.size_bytes)
-    };
     let task_note = if sec.is_some() {
         format!(", breaking at most {:.0}% of the answers the original gets right", t.max_regression * 100.0)
     } else {
         String::new()
     };
-    if let Some(c) = smallest(&|c| c.summary.kl_mean < t.excellent && c.summary.top1_agreement >= t.min_top1 && keeps_answers(c)) {
-        return Some(Recommendation {
-            name: c.model.spec.name.clone(),
-            reason: format!(
-                "smallest model with mean KL < {:.4} and ≥ {:.0}% top-1 agreement on your prompts{}",
-                t.excellent,
-                t.min_top1 * 100.0,
-                task_note
-            ),
-        });
-    }
-    if let Some(c) = smallest(&|c| c.summary.kl_mean < t.noticeable && keeps_answers(c)) {
-        return Some(Recommendation {
-            name: c.model.spec.name.clone(),
-            reason: format!("no candidate is excellent; this is the smallest with mean KL < {:.4}{}", t.noticeable, task_note),
-        });
-    }
-    cands
-        .iter()
-        .min_by(|a, b| a.summary.kl_mean.partial_cmp(&b.summary.kl_mean).unwrap())
-        .map(|c| Recommendation {
-            name: c.model.spec.name.clone(),
-            reason: "every candidate degrades noticeably; this one is closest to the reference".into(),
-        })
+    let (i, why) = recommend::pick(&rec_inputs(cands, sec, ref_name), t)?;
+    let reason = match why {
+        recommend::Why::Excellent => format!(
+            "smallest model with mean KL < {:.4} and ≥ {:.0}% top-1 agreement on your prompts{}",
+            t.excellent,
+            t.min_top1 * 100.0,
+            task_note
+        ),
+        recommend::Why::Noticeable => {
+            format!("no candidate is excellent; this is the smallest with mean KL < {:.4}{}", t.noticeable, task_note)
+        }
+        recommend::Why::Closest => "every candidate degrades noticeably; this one is closest to the reference".into(),
+    };
+    Some(Recommendation { name: cands[i].model.spec.name.clone(), reason })
 }
 
 /// Teacher-force `prompt ++ answer` for every task and return the outputs at
