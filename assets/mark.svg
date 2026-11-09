@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <style>.b{fill:#111111}.d{fill:#2f7fd1}@media (prefers-color-scheme: dark){.b{fill:#f2f2f0}.d{fill:#8ec5ff}}</style>
+  <g class="b">
+    <rect x="3" y="6" width="10" height="10" rx="1.5"/><rect x="16" y="6" width="10" height="10" rx="1.5"/><rect x="29" y="6" width="10" height="10" rx="1.5"/>
+    <rect x="3" y="19" width="10" height="10" rx="1.5"/><rect x="16" y="19" width="10" height="10" rx="1.5"/><rect x="29" y="23" width="6" height="6" rx="1"/>
+    <rect x="3" y="32" width="10" height="10" rx="1.5"/><rect x="16" y="35" width="7" height="7" rx="1"/>
+  </g>
+  <g class="d">
+    <rect x="30" y="37" width="4" height="4" rx="0.8"/><rect x="38" y="30" width="3" height="3" rx="0.6"/><rect x="43" y="38" width="2" height="2" rx="0.4"/>
+  </g>
+</svg>

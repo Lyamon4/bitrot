@@ -1,6 +1,11 @@
-# bitrot
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img alt="bitrot" src="assets/logo-light.svg" width="320">
+  </picture>
+</p>
 
-**How much did quantization rot your LLM?**
+<p align="center"><b>How much did quantization rot your LLM?</b></p>
 
 `bitrot` runs the same text through a full-precision LLM and its quantized versions (GGUF via llama.cpp, MLX on Apple Silicon), compares the probability distributions **token by token**, and tells you which quant to download for *your* prompts and *your* machine. Everything runs locally: no API keys, no cloud, no telemetry.
 

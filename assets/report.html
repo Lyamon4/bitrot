@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>bitrot report</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij4KICA8c3R5bGU+LmJ7ZmlsbDojMTExMTExfS5ke2ZpbGw6IzJmN2ZkMX1AbWVkaWEgKHByZWZlcnMtY29sb3Itc2NoZW1lOiBkYXJrKXsuYntmaWxsOiNmMmYyZjB9LmR7ZmlsbDojOGVjNWZmfX08L3N0eWxlPgogIDxnIGNsYXNzPSJiIj4KICAgIDxyZWN0IHg9IjMiIHk9IjYiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgcng9IjEuNSIvPjxyZWN0IHg9IjE2IiB5PSI2IiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHJ4PSIxLjUiLz48cmVjdCB4PSIyOSIgeT0iNiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiByeD0iMS41Ii8+CiAgICA8cmVjdCB4PSIzIiB5PSIxOSIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTYiIHk9IjE5IiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHJ4PSIxLjUiLz48cmVjdCB4PSIyOSIgeT0iMjMiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIHJ4PSIxIi8+CiAgICA8cmVjdCB4PSIzIiB5PSIzMiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTYiIHk9IjM1IiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiByeD0iMSIvPgogIDwvZz4KICA8ZyBjbGFzcz0iZCI+CiAgICA8cmVjdCB4PSIzMCIgeT0iMzciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHJ4PSIwLjgiLz48cmVjdCB4PSIzOCIgeT0iMzAiIHdpZHRoPSIzIiBoZWlnaHQ9IjMiIHJ4PSIwLjYiLz48cmVjdCB4PSI0MyIgeT0iMzgiIHdpZHRoPSIyIiBoZWlnaHQ9IjIiIHJ4PSIwLjQiLz4KICA8L2c+Cjwvc3ZnPgo=">
 <style>
 :root {
   --bg: #0a0a0a;
@@ -44,7 +45,8 @@ b, strong { font-weight: 500; color: var(--ink); }
   linear-gradient(0deg, var(--bg) 0%, rgba(10,10,10,0) 32%); }
 .hero > .wrap { position: relative; z-index: 1; }
 .topbar { display: flex; justify-content: space-between; align-items: center; padding: 24px 0; }
-.brand { font-family: var(--mono); font-weight: 500; font-size: 16px; }
+.brand { font-family: var(--mono); font-weight: 500; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.brand .mark { display: block; }
 .brand span { color: var(--muted); font-weight: 400; }
 .lang { display: flex; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; overflow: hidden; }
 .lang button { background: none; border: 0; color: var(--muted); font: 500 13px var(--sans); padding: 6px 12px; cursor: pointer; transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1), color 160ms cubic-bezier(0.22, 1, 0.36, 1); }
@@ -391,7 +393,7 @@ function render() {
   const tokens = C[0] ? C[0].summary.n_tokens : 0;
 
   let h = `<header class="hero" style="--hero:url('${HERO}')"><div class="photo"></div><div class="wrap" style="width:100%">
-    <div class="topbar"><div class="brand">bitrot <span>v${esc(D.version)}</span></div>
+    <div class="topbar"><div class="brand"><svg class="mark" viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><g fill="var(--ink)"><rect x="3" y="6" width="10" height="10" rx="1.5"/><rect x="16" y="6" width="10" height="10" rx="1.5"/><rect x="29" y="6" width="10" height="10" rx="1.5"/><rect x="3" y="19" width="10" height="10" rx="1.5"/><rect x="16" y="19" width="10" height="10" rx="1.5"/><rect x="29" y="23" width="6" height="6" rx="1"/><rect x="3" y="32" width="10" height="10" rx="1.5"/><rect x="16" y="35" width="7" height="7" rx="1"/></g><g fill="var(--accent)"><rect x="30" y="37" width="4" height="4" rx="0.8"/><rect x="38" y="30" width="3" height="3" rx="0.6"/><rect x="43" y="38" width="2" height="2" rx="0.4"/></g></svg>bitrot <span>v${esc(D.version)}</span></div>
       <div class="lang"><button data-l="en" class="${lang === "en" ? "on" : ""}">EN</button><button data-l="ru" class="${lang === "ru" ? "on" : ""}">RU</button></div></div>
     <div class="hero-text">
       <p class="kicker">${T("kicker", { model: esc(model) })}</p>`;
