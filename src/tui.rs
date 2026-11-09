@@ -756,3 +756,149 @@ pub fn view(results_path: &Path) -> Result<()> {
     app.screen = Screen::Results;
     run_app(app)
 }
+
+/// Exact vector shapes for the block and box-drawing characters the TUI uses.
+fn cell_shape(sym: &str, x: f64, y: f64, w: f64, h: f64, fill: &str) -> Option<String> {
+    let r = |rx: f64, ry: f64, rw: f64, rh: f64| {
+        format!("<rect x=\"{rx:.2}\" y=\"{ry:.2}\" width=\"{rw:.2}\" height=\"{rh:.2}\" fill=\"{fill}\"/>\n")
+    };
+    let (mx, my) = (x + w / 2.0, y + h / 2.0);
+    let line = |d: String| format!("<path d=\"{d}\" fill=\"none\" stroke=\"{fill}\" stroke-width=\"1\"/>\n");
+    Some(match sym {
+        "█" => r(x, y, w + 0.3, h + 0.3),
+        "▀" => r(x, y, w + 0.3, h / 2.0),
+        "▄" => r(x, y + h / 2.0, w + 0.3, h / 2.0 + 0.3),
+        "■" => r(mx - 3.2, my - 3.2, 6.4, 6.4),
+        "▪" => r(mx - 2.2, my - 2.2, 4.4, 4.4),
+        "·" => r(mx - 1.2, my - 1.2, 2.4, 2.4),
+        "░" => format!("<rect x=\"{x:.2}\" y=\"{:.2}\" width=\"{:.2}\" height=\"{:.2}\" fill=\"{fill}\" opacity=\"0.35\"/>\n", y + 4.0, w + 0.3, h - 8.0),
+        "━" => r(x, my - 1.5, w + 0.3, 3.0),
+        "─" => r(x, my - 0.5, w + 0.3, 1.0),
+        "│" => r(mx - 0.5, y, 1.0, h + 0.3),
+        "●" => format!("<circle cx=\"{mx:.2}\" cy=\"{my:.2}\" r=\"4\" fill=\"{fill}\"/>\n"),
+        "╭" => line(format!("M{:.2},{:.2} V{:.2} Q{mx:.2},{my:.2} {:.2},{my:.2}", mx, y + h, my + 4.0, x + w)),
+        "╮" => line(format!("M{x:.2},{my:.2} H{:.2} Q{mx:.2},{my:.2} {mx:.2},{:.2} V{:.2}", mx - 4.0, my + 4.0, y + h)),
+        "╰" => line(format!("M{mx:.2},{y:.2} V{:.2} Q{mx:.2},{my:.2} {:.2},{my:.2} H{:.2}", my - 4.0, mx + 4.0, x + w)),
+        "╯" => line(format!("M{mx:.2},{y:.2} V{:.2} Q{mx:.2},{my:.2} {:.2},{my:.2} H{x:.2}", my - 4.0, mx - 4.0)),
+        _ => return None,
+    })
+}
+
+/// Which screen to render with [`snapshot_svg`].
+pub enum Shot {
+    Setup,
+    Results(usize),
+}
+
+/// Render one TUI screen into an SVG file (used for the README). Uses
+/// ratatui's in-memory test backend, so it is the real interface with its
+/// real colours, not a screenshot of a terminal.
+pub fn snapshot_svg(results_path: &Path, models_dir: &Path, shot: Shot, out: &Path, cols: u16, rows: u16) -> Result<()> {
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+    crate::term::disable();
+    let data: Results = serde_json::from_slice(&std::fs::read(results_path)?)?;
+    let mut app = App::new(models_dir.to_path_buf(), Settings::default(), PathBuf::from("bitrot-out"));
+    match shot {
+        Shot::Setup => {}
+        Shot::Results(tab) => {
+            app.results = Some(data);
+            app.screen = Screen::Results;
+            app.tab = tab.min(TABS.len() - 1);
+            app.cand = app.results.as_ref().map_or(0, |r| r.candidates.len().saturating_sub(1));
+        }
+    }
+    let mut term = Terminal::new(TestBackend::new(cols, rows))?;
+    term.draw(|f| app.draw(f))?;
+    let buf = term.backend().buffer().clone();
+
+    let (cw, ch) = (9.0_f64, 19.0_f64);
+    let (pad, bar) = (16.0, 30.0);
+    let (w, h) = (cols as f64 * cw + pad * 2.0, rows as f64 * ch + pad * 2.0 + bar);
+    let hex = |c: Color, dflt: &str| match c {
+        Color::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
+        Color::Black => "#000000".into(),
+        _ => dflt.into(),
+    };
+    let esc = |s: &str| s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+    let mut svg = format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {w:.0} {h:.0}\" width=\"{w:.0}\" height=\"{h:.0}\">\n\
+         <rect width=\"{w:.0}\" height=\"{h:.0}\" rx=\"12\" fill=\"#0b0b0b\"/>\n\
+         <rect width=\"{w:.0}\" height=\"{bar}\" rx=\"12\" fill=\"#161616\"/><rect y=\"{y2}\" width=\"{w:.0}\" height=\"12\" fill=\"#161616\"/>\n\
+         <circle cx=\"20\" cy=\"15\" r=\"5\" fill=\"#3a3a3a\"/><circle cx=\"38\" cy=\"15\" r=\"5\" fill=\"#3a3a3a\"/><circle cx=\"56\" cy=\"15\" r=\"5\" fill=\"#3a3a3a\"/>\n\
+         <text x=\"{cx:.0}\" y=\"19\" fill=\"#85857f\" font-family=\"ui-monospace, Menlo, Consolas, monospace\" font-size=\"12\" text-anchor=\"middle\">bitrot</text>\n\
+         <g font-family=\"'JetBrains Mono', 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace\" font-size=\"15\" style=\"white-space:pre\">\n",
+        y2 = bar - 12.0,
+        cx = w / 2.0
+    );
+    for y in 0..rows {
+        let top = pad + bar + y as f64 * ch;
+        // Background runs.
+        let mut x = 0u16;
+        while x < cols {
+            let cell = &buf[(x, y)];
+            if let Color::Rgb(..) | Color::Black = cell.bg {
+                let bg = hex(cell.bg, "");
+                let start = x;
+                while x < cols && hex(buf[(x, y)].bg, "") == bg {
+                    x += 1;
+                }
+                svg += &format!(
+                    "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{ch}\" fill=\"{bg}\"/>\n",
+                    pad + start as f64 * cw,
+                    top,
+                    (x - start) as f64 * cw
+                );
+            } else {
+                x += 1;
+            }
+        }
+        // Glyphs: block and box-drawing characters become exact shapes on
+        // the cell grid (fonts disagree about them); other text is emitted
+        // in runs of non-space characters pinned to their cells.
+        let mut x = 0u16;
+        while x < cols {
+            let c0 = &buf[(x, y)];
+            let sym = c0.symbol();
+            let fg = hex(c0.fg, "#c9c9c5");
+            let (cx, cy) = (pad + x as f64 * cw, top);
+            if let Some(shape) = cell_shape(sym, cx, cy, cw, ch, &fg) {
+                svg += &shape;
+                x += 1;
+                continue;
+            }
+            if sym.trim().is_empty() {
+                x += 1;
+                continue;
+            }
+            let bold = c0.modifier.contains(Modifier::BOLD);
+            let start = x;
+            let mut text = String::new();
+            while x < cols {
+                let c = &buf[(x, y)];
+                let s = c.symbol();
+                if s.trim().is_empty()
+                    || cell_shape(s, 0.0, 0.0, cw, ch, "").is_some()
+                    || hex(c.fg, "#c9c9c5") != fg
+                    || c.modifier.contains(Modifier::BOLD) != bold
+                {
+                    break;
+                }
+                text.push_str(s);
+                x += 1;
+            }
+            svg += &format!(
+                "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"{}\"{} textLength=\"{:.1}\" lengthAdjust=\"spacingAndGlyphs\">{}</text>\n",
+                pad + start as f64 * cw,
+                top + ch * 0.74,
+                fg,
+                if bold { " font-weight=\"700\"" } else { "" },
+                (x - start) as f64 * cw,
+                esc(&text)
+            );
+        }
+    }
+    svg += "</g>\n</svg>\n";
+    std::fs::write(out, svg)?;
+    Ok(())
+}

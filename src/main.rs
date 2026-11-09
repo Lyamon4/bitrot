@@ -70,6 +70,12 @@ enum Cmd {
     View {
         #[arg(default_value = "bitrot-out/results.json")]
         results: PathBuf,
+        /// Instead of opening the interface, render it to an SVG file.
+        #[arg(long, hide = true)]
+        svg: Option<PathBuf>,
+        /// Screen for --svg: setup, or a results tab 1-4.
+        #[arg(long, hide = true, default_value = "1")]
+        shot: String,
     },
     /// Re-render the HTML report from a saved results.json.
     Report {
@@ -231,7 +237,14 @@ fn main() -> Result<()> {
     };
     match command {
         Cmd::Tui { models, out } => tui::run(models, tui_settings(), out),
-        Cmd::View { results } => tui::view(&results),
+        Cmd::View { results, svg: Some(svg), shot } => {
+            let shot = match shot.as_str() {
+                "setup" => tui::Shot::Setup,
+                n => tui::Shot::Results(n.parse::<usize>().unwrap_or(1).saturating_sub(1)),
+            };
+            tui::snapshot_svg(&results, Path::new("models"), shot, &svg, 118, 26)
+        }
+        Cmd::View { results, .. } => tui::view(&results),
         Cmd::Compare { reference, candidates, opts } => {
             let mut cfg = Config {
                 settings: Settings { prompts: bundled_dir("prompts"), tasks: bundled_dir("tasks"), ..Settings::default() },

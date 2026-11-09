@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="860" height="400" rx="14" fill="#0d0d0d"/>
+<text x="28" y="40" fill="#f2f2f0" font-size="19" font-weight="500">Quality vs size</text>
+<text x="28" y="64" fill="#85857f" font-size="13.5">Lower is closer to the original. The line joins the quants nothing else beats on both axes.</text>
+<rect x="80.0" y="322.5" width="740.0" height="17.5" rx="0" fill="#8ec5ff" opacity="0.06"/>
+<text x="814.0" y="336.5" fill="#8ec5ff" font-size="11" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">excellent</text>
+<rect x="80.0" y="225.9" width="740.0" height="96.6" rx="0" fill="#d9a441" opacity="0.06"/>
+<text x="814.0" y="239.9" fill="#d9a441" font-size="11" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">noticeable</text>
+<rect x="80.0" y="96.0" width="740.0" height="129.9" rx="0" fill="#e5484d" opacity="0.06"/>
+<text x="814.0" y="110.0" fill="#e5484d" font-size="11" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">degraded</text>
+<line x1="80.0" y1="340.0" x2="820.0" y2="340.0" stroke="#262626" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="70.0" y="344.0" fill="#85857f" font-size="12" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.001</text>
+<line x1="80.0" y1="258.7" x2="820.0" y2="258.7" stroke="#262626" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="70.0" y="262.7" fill="#85857f" font-size="12" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.01</text>
+<line x1="80.0" y1="177.3" x2="820.0" y2="177.3" stroke="#262626" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="70.0" y="181.3" fill="#85857f" font-size="12" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.1</text>
+<line x1="80.0" y1="96.0" x2="820.0" y2="96.0" stroke="#262626" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="70.0" y="100.0" fill="#85857f" font-size="12" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">1</text>
+<text x="80.0" y="362.0" fill="#85857f" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0 MB</text>
+<text x="202.8" y="362.0" fill="#85857f" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">50 MB</text>
+<text x="325.5" y="362.0" fill="#85857f" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">100 MB</text>
+<text x="448.3" y="362.0" fill="#85857f" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">150 MB</text>
+<text x="571.1" y="362.0" fill="#85857f" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">200 MB</text>
+<text x="693.8" y="362.0" fill="#85857f" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">250 MB</text>
+<text x="816.6" y="362.0" fill="#85857f" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">300 MB</text>
+<text x="80.0" y="86.0" fill="#85857f" font-size="11" text-anchor="start" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">mean KL (log scale)</text>
+<line x1="740.7" y1="96.0" x2="740.7" y2="340.0" stroke="#85857f" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="734.7" y="110.0" fill="#85857f" font-size="11" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">f16 (original)</text>
+<polyline points="292.2,148.6 334.5,206.8 431.2,289.2" fill="none" stroke="#c9c9c5" stroke-opacity="0.45" stroke-width="1.5"/>
+<circle cx="431.2" cy="289.2" r="7" fill="#8ec5ff" stroke="#0d0d0d" stroke-width="2"/>
+<text x="443.2" y="293.2" fill="#f2f2f0" font-size="12" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">Q8_0  KL 0.0042</text>
+<circle cx="334.5" cy="206.8" r="7" fill="#c9c9c5" stroke="#0d0d0d" stroke-width="2"/>
+<text x="346.5" y="210.8" fill="#f2f2f0" font-size="12" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">Q4_K_M  KL 0.0434</text>
+<circle cx="292.2" cy="148.6" r="7" fill="#7a7a75" stroke="#0d0d0d" stroke-width="2"/>
+<text x="304.2" y="152.6" fill="#f2f2f0" font-size="12" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">Q2_K  KL 0.2258</text>
+</svg>

@@ -357,7 +357,7 @@ const gb = b => b >= 1e9 ? (b / 1e9).toFixed(2) + " GB" : (b / 1e6).toFixed(0) +
 const pct = (x, d = 1) => (x * 100).toFixed(d).replace(/\.0$/, "") + "%";
 const fmtKL = x => x < 0.001 ? x.toExponential(1) : x.toFixed(4);
 const num = n => n.toLocaleString(lang === "ru" ? "ru-RU" : "en-US");
-const showPiece = s => s.replace(/\n/g, "↵").replace(/\t/g, "⇥") || "·";
+const showPiece = s => s.replace(/\n/g, "↵").replace(/\t/g, "⇥").replace(/�/g, "·") || "·";
 const nice = n => n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2);
 
 // Log-scale position of a KL value on the drift line, 0..100.
@@ -479,7 +479,7 @@ function render() {
       const other = s.n - s.identical - s.regressions - s.fixes;
       const seg = (n, col, label) => n ? `<div title="${label}: ${n}" style="width:${n / s.n * 100}%;background:${col}"></div>` : "";
       h += `<div class="tcell"><div class="mono" style="color:${rec === c ? "var(--accent)" : "var(--ink-2)"}">${esc(c.model.spec.name)}</div>
-        <div class="big">${T("correct_of", { c: s.correct, n: s.n })}</div>
+        <div class="big">${s.correct}<span class="muted" style="font-size:18px">/${s.n} ${T("right")}</span></div>
         <div class="sub">${s.regressions ? T("broke", { b: s.regressions }) : T("broke0")}</div>
         <div class="sub">${T("same_text", { p: pct(s.identical / s.n, 0) })}</div>
         <div class="stack">${seg(s.identical, "var(--q0)", T("stack_same"))}${seg(other, "#3a3a3a", T("stack_reworded"))}${seg(s.fixes, "var(--q1)", T("stack_fixed"))}${seg(s.regressions, "var(--q3)", T("stack_broken"))}</div></div>`;

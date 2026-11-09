@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 450" width="860" height="450" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="860" height="450" rx="14" fill="#0d0d0d"/>
+<text x="28" y="40" fill="#f2f2f0" font-size="19" font-weight="500">Where quantization breaks first: Russian text</text>
+<text x="28" y="64" fill="#85857f" font-size="13.5">Mean KL per kind of text. Every quant drifts most on Russian text: 2.3-2.7x the average of the other kinds.</text>
+<text x="134.0" y="119.0" fill="#f2f2f0" font-size="13" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="500">Russian text</text>
+<rect x="150.0" y="92.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="92.0" width="10.9" height="12.0" rx="3" fill="#8ec5ff"/>
+<text x="168.9" y="102.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0068</text>
+<rect x="150.0" y="108.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="108.0" width="111.8" height="12.0" rx="3" fill="#c9c9c5"/>
+<text x="269.8" y="118.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0690</text>
+<rect x="150.0" y="124.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="124.0" width="620.0" height="12.0" rx="3" fill="#7a7a75"/>
+<text x="778.0" y="134.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.3829</text>
+<text x="134.0" y="185.0" fill="#c9c9c5" font-size="13" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">code</text>
+<rect x="150.0" y="158.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="158.0" width="4.6" height="12.0" rx="3" fill="#8ec5ff"/>
+<text x="162.6" y="168.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0028</text>
+<rect x="150.0" y="174.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="174.0" width="47.5" height="12.0" rx="3" fill="#c9c9c5"/>
+<text x="205.5" y="184.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0293</text>
+<rect x="150.0" y="190.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="190.0" width="245.7" height="12.0" rx="3" fill="#7a7a75"/>
+<text x="403.7" y="200.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.1518</text>
+<text x="134.0" y="251.0" fill="#c9c9c5" font-size="13" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">English text</text>
+<rect x="150.0" y="224.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="224.0" width="5.2" height="12.0" rx="3" fill="#8ec5ff"/>
+<text x="163.2" y="234.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0032</text>
+<rect x="150.0" y="240.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="240.0" width="53.4" height="12.0" rx="3" fill="#c9c9c5"/>
+<text x="211.4" y="250.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0330</text>
+<rect x="150.0" y="256.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="256.0" width="230.2" height="12.0" rx="3" fill="#7a7a75"/>
+<text x="388.2" y="266.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.1422</text>
+<text x="134.0" y="317.0" fill="#c9c9c5" font-size="13" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">math</text>
+<rect x="150.0" y="290.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="290.0" width="5.0" height="12.0" rx="3" fill="#8ec5ff"/>
+<text x="163.0" y="300.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0031</text>
+<rect x="150.0" y="306.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="306.0" width="52.0" height="12.0" rx="3" fill="#c9c9c5"/>
+<text x="210.0" y="316.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0321</text>
+<rect x="150.0" y="322.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="322.0" width="228.0" height="12.0" rx="3" fill="#7a7a75"/>
+<text x="386.0" y="332.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.1408</text>
+<text x="134.0" y="383.0" fill="#c9c9c5" font-size="13" text-anchor="end" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-weight="400">tables &amp; JSON</text>
+<rect x="150.0" y="356.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="356.0" width="3.9" height="12.0" rx="3" fill="#8ec5ff"/>
+<text x="161.9" y="366.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0024</text>
+<rect x="150.0" y="372.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="372.0" width="41.8" height="12.0" rx="3" fill="#c9c9c5"/>
+<text x="199.8" y="382.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.0258</text>
+<rect x="150.0" y="388.0" width="620.0" height="12.0" rx="3" fill="#161616"/>
+<rect x="150.0" y="388.0" width="227.3" height="12.0" rx="3" fill="#7a7a75"/>
+<text x="385.3" y="398.0" fill="#85857f" font-size="11" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">0.1404</text>
+<rect x="150.0" y="424.0" width="10.0" height="10.0" rx="2" fill="#8ec5ff"/>
+<text x="166.0" y="433.0" fill="#c9c9c5" font-size="12" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">Q8_0</text>
+<rect x="260.0" y="424.0" width="10.0" height="10.0" rx="2" fill="#c9c9c5"/>
+<text x="276.0" y="433.0" fill="#c9c9c5" font-size="12" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">Q4_K_M</text>
+<rect x="370.0" y="424.0" width="10.0" height="10.0" rx="2" fill="#7a7a75"/>
+<text x="386.0" y="433.0" fill="#c9c9c5" font-size="12" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="400">Q2_K</text>
+</svg>

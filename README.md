@@ -9,6 +9,37 @@
 
 `bitrot` runs the same text through a full-precision LLM and its quantized versions (GGUF via llama.cpp, MLX on Apple Silicon), compares the probability distributions **token by token**, and tells you which quant to download for *your* prompts and *your* machine. Everything runs locally: no API keys, no cloud, no telemetry.
 
+<p align="center">
+  <img src="assets/screens/report-hero.png" alt="The bitrot report: Download Q8_0" width="860">
+</p>
+
+## What a run finds
+
+A real run: SmolLM2-135M in F16 against its Q8_0, Q4_K_M and Q2_K quants, 10 prompts in 5 kinds of text and 50 test questions, on a Ryzen 5 7600. Every chart below is drawn from that run's `results.json`.
+
+<p align="center"><img src="assets/charts/quality-vs-size.svg" alt="Quality vs size" width="860"></p>
+
+**Smaller is worse, but not evenly.** Q8_0 halves the size for a 10× smaller drift than Q4_K_M. The shaded bands are the quality tiers, and they aren't hard-coded: they are fitted to how often this model's answers actually changed (see the calibration chart below).
+
+<p align="center"><img src="assets/charts/by-category.svg" alt="Drift by kind of text" width="860"></p>
+
+**Quantization does not hurt every kind of text equally.** Every quant drifts most on Russian text. If you use a model mostly in one language or for code, measure on that.
+
+<p align="center"><img src="assets/charts/answers.svg" alt="Changed answers" width="860"></p>
+
+**Drift turns into wrong answers.** By KL, Q8_0 looks almost lossless, yet 3 of the questions the original got right come out wrong. Q2_K breaks 11.
+
+<p align="center"><img src="assets/charts/calibration.svg" alt="Calibration curve" width="860"></p>
+
+**What counts as "fine" is fitted, not guessed.** Each dot is one answer by one quant. A logistic fit of "did the answer change" against KL gives the tier boundaries for this model. Small models are fragile: even Q8_0's KL of 0.004 means about 7% changed answers (8% were observed).
+
+<p align="center"><img src="assets/charts/luck.svg" alt="Bootstrap intervals" width="860"></p>
+
+**And it tells you when a difference is noise.** Q4_K_M drifts measurably more than Q8_0, but on 50 questions its answers are not distinguishably worse: the interval crosses zero. Q2_K is worse for certain. The recommendation survives 94% of 1,000 resamples of the data.
+
+<details>
+<summary>The same run in the terminal</summary>
+
 ```
 $ bitrot compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K_M.gguf SmolLM2-135M-Q2_K.gguf --open
 
@@ -47,7 +78,7 @@ $ bitrot compare SmolLM2-135M-f16.gguf SmolLM2-135M-Q8_0.gguf SmolLM2-135M-Q4_K_
                breaking at most 10% of the answers the original gets right)
 ```
 
-Note the quality column: those tiers are not hard-coded. They come from fitting how often this particular model's answers actually changed (see [Calibration](#how-it-works)).
+</details>
 
 ## Why
 
@@ -80,6 +111,15 @@ bitrot answers the questions that matter before you pick a quant:
 - **Token explorer**: the actual text, each token tinted by how far the quant drifted there and underlined where the top token flipped. Hover any token to see the reference's top-5 next to the quant's top-5.
 - **Biggest disagreements**: the worst positions with their context.
 
+<p align="center"><img src="assets/screens/report-options.png" alt="One card per version" width="860"></p>
+<p align="center"><sub>One card per version, in plain words. The thin line under each name is its drift: from "identical" on the left to "damaged" on the right.</sub></p>
+
+<p align="center"><img src="assets/screens/report-explorer.png" alt="Token explorer" width="860"></p>
+<p align="center"><sub>The token explorer on Russian text with Q2_K. Shading is drift, underlines are changed words. Clicking a token compares the two models' top guesses: the original was 59% sure of «а», Q2_K preferred «ан».</sub></p>
+
+<p align="center"><img src="assets/screens/report-answers.png" alt="Changed answers" width="860"></p>
+<p align="center"><sub>Every answer that changed, next to the original's. The highlighted part is where the text first differs: <code>150 + 275 = 4</code><b>05</b>.</sub></p>
+
 ## Install
 
 ```bash
@@ -96,20 +136,9 @@ You need a Rust toolchain, CMake and a C/C++ compiler (llama.cpp is built from s
 
 Run `bitrot` with no arguments (or `bitrot tui --models <dir>`). It finds the GGUF files in `./models`, pre-selects the F16 file as the original and the rest as versions to compare, and runs everything with live progress. Then it shows the answer and four tabs: an overview with a drift line per version, where each version breaks first, the test answers that changed, and which conclusions survive the bootstrap.
 
-```
-  ■ ■ ■      █    ▀  ▄             ▄
-  ■ ■ ▪ ·    █▀▀▄ █ ▀█▀ █▄▀▀ ▄▀▀▄ ▀█▀
-  ■ ▪  ▪ ·   ▀▀▀  ▀  ▀▀ ▀     ▀▀   ▀▀
-  how much did quantization rot your llm?
-
- Download Q8_0   picked in 94% of 1,000 reshuffles of the data
-  1 Overview    2 Where it breaks    3 Answers    4 Is it luck?
- version        size           verdict              drift            same word   answers
- F16            269 MB         original             ●─────────────   100%        31/50
- Q8_0  ◂ pick   143 MB  53%    noticeably changed   ━━━━━━━●──────   95.7%       29/50  broke 3
- Q4_K_M         104 MB  39%    badly damaged        ━━━━━━━━━━●───   88.3%       29/50  broke 4
- Q2_K           86 MB  32%     badly damaged        ━━━━━━━━━━━━●─   74.1%       22/50  broke 11
-```
+<p align="center"><img src="assets/screens/tui-setup.svg" alt="bitrot TUI: choose models" width="860"></p>
+<p align="center"><img src="assets/screens/tui-tab1.svg" alt="bitrot TUI: results" width="860"></p>
+<p align="center"><img src="assets/screens/tui-tab4.svg" alt="bitrot TUI: is it luck?" width="860"></p>
 
 Keys: arrows to move, `r` marks the original, space toggles a version, `t` and `b` switch the test answers and speed benchmark on or off, enter runs. On the results screen, left and right switch tabs, `c` cycles through versions, `o` opens the HTML report. `bitrot view bitrot-out/results.json` reopens a saved run.
 
@@ -156,16 +185,7 @@ Use your own tasks: add `.jsonl` files to `tasks/` (the file name becomes the ca
 
 ## How it works
 
-```
-                    ┌──────────────┐  top-k ids + log-probs per position
-  prompts ─tokens─▶ │  reference   │──────────────────────────────┐
-                    │  (F16 GGUF)  │                              │
-                    └──────────────┘                              ▼
-                    ┌──────────────┐  log-probs of those same ids  ┌──────────┐
-           same ──▶ │  quant #n    │─────────────────────────────▶│ metrics  │─▶ results.json
-           tokens   │ GGUF or MLX  │  + its own top-k              │ KL, flips│─▶ report.html
-                    └──────────────┘                               └──────────┘
-```
+<p align="center"><img src="assets/charts/pipeline.svg" alt="How bitrot works" width="860"></p>
 
 1. **Teacher forcing.** Every prompt is tokenized once by the reference, and the *same token ids* go through every model, so positions line up exactly. bitrot refuses to compare models whose tokenizers disagree.
 2. **Coarsened KL.** At each position the reference keeps its top-k tokens (k = 64). Each quant reports its probabilities for exactly those tokens, and the rest of the vocabulary is pooled into one tail bucket on both sides. The KL divergence of these (k+1)-bucket distributions is, by the data-processing inequality, a **lower bound** on the full-vocabulary KL. It is tight in practice because the reference tail is tiny, and it means models never have to ship 150k-wide logit rows between processes.
@@ -205,6 +225,15 @@ assets/          report template (vanilla JS + SVG, no dependencies)
 | degraded | ≥ 0.15 | frequent wrong tokens, especially off-English |
 
 These are the **defaults**. When tasks are run (the default), they are replaced by thresholds calibrated on the model's own answers (see *How it works*), and the report shows the fitted curve. You can also set them by hand in the `[thresholds]` section of a config. Compare quants of the *same* model on the *same* prompts. Absolute KL values are not comparable across model families.
+
+## Regenerating the pictures
+
+The charts are drawn from a run's data and the TUI images are rendered by bitrot itself (ratatui's test backend, so they are the real interface):
+
+```bash
+python scripts/readme_charts.py bitrot-out/results.json assets/charts
+bitrot view bitrot-out/results.json --svg assets/screens/tui-tab1.svg --shot 1   # setup, or tab 1-4
+```
 
 ## Limitations
 
