@@ -3,7 +3,7 @@
 use crate::metrics::Tier;
 use crate::runner::Results;
 use anyhow::Result;
-use owo_colors::OwoColorize;
+use crate::term::Paint;
 use std::path::Path;
 
 const TEMPLATE: &str = include_str!("../assets/report.html");

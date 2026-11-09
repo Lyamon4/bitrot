@@ -12,7 +12,7 @@ use crate::stats;
 use crate::tasks::{self, Task, TaskRun, TaskSection};
 use anyhow::{bail, Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
-use owo_colors::OwoColorize;
+use crate::term::Paint;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;

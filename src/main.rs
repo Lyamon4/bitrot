@@ -11,11 +11,12 @@ mod runner;
 mod stats;
 mod sys;
 mod tasks;
+mod term;
 
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use config::{guess_name, BackendKind, Config, ModelSpec, Settings, Thresholds};
-use owo_colors::OwoColorize;
+use crate::term::Paint;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
@@ -201,6 +202,7 @@ fn open_in_browser(path: &Path) {
 }
 
 fn main() -> Result<()> {
+    term::init();
     let cli = Cli::parse();
     match cli.command {
         Cmd::Compare { reference, candidates, opts } => {
