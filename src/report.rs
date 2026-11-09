@@ -49,6 +49,16 @@ mod tests {
     }
 }
 
+/// Write results.json and report.html into `out`. Returns both paths.
+pub fn save(results: &Results, out: &Path) -> Result<(std::path::PathBuf, std::path::PathBuf)> {
+    std::fs::create_dir_all(out).map_err(|e| anyhow::anyhow!("cannot create {}: {e}", out.display()))?;
+    let json = out.join("results.json");
+    std::fs::write(&json, serde_json::to_vec(results)?)?;
+    let html = out.join("report.html");
+    write_html(results, &html)?;
+    Ok((json, html))
+}
+
 pub fn human_bytes(b: u64) -> String {
     let b = b as f64;
     if b >= 1e9 {

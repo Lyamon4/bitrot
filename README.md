@@ -92,6 +92,29 @@ You need a Rust toolchain, CMake and a C/C++ compiler (llama.cpp is built from s
 
 ## Usage
 
+### Terminal interface
+
+Run `bitrot` with no arguments (or `bitrot tui --models <dir>`). It finds the GGUF files in `./models`, pre-selects the F16 file as the original and the rest as versions to compare, and runs everything with live progress. Then it shows the answer and four tabs: an overview with a drift line per version, where each version breaks first, the test answers that changed, and which conclusions survive the bootstrap.
+
+```
+  ■ ■ ■      █    ▀  ▄             ▄
+  ■ ■ ▪ ·    █▀▀▄ █ ▀█▀ █▄▀▀ ▄▀▀▄ ▀█▀
+  ■ ▪  ▪ ·   ▀▀▀  ▀  ▀▀ ▀     ▀▀   ▀▀
+  how much did quantization rot your llm?
+
+ Download Q8_0   picked in 94% of 1,000 reshuffles of the data
+  1 Overview    2 Where it breaks    3 Answers    4 Is it luck?
+ version        size           verdict              drift            same word   answers
+ F16            269 MB         original             ●─────────────   100%        31/50
+ Q8_0  ◂ pick   143 MB  53%    noticeably changed   ━━━━━━━●──────   95.7%       29/50  broke 3
+ Q4_K_M         104 MB  39%    badly damaged        ━━━━━━━━━━●───   88.3%       29/50  broke 4
+ Q2_K           86 MB  32%     badly damaged        ━━━━━━━━━━━━●─   74.1%       22/50  broke 11
+```
+
+Keys: arrows to move, `r` marks the original, space toggles a version, `t` and `b` switch the test answers and speed benchmark on or off, enter runs. On the results screen, left and right switch tabs, `c` cycles through versions, `o` opens the HTML report. `bitrot view bitrot-out/results.json` reopens a saved run.
+
+### Command line
+
 Quick comparison from the command line (GGUF paths, or `mlx:<dir or hf-repo>` for MLX):
 
 ```bash

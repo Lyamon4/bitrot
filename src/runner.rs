@@ -11,7 +11,6 @@ use crate::recommend;
 use crate::stats;
 use crate::tasks::{self, Task, TaskRun, TaskSection};
 use anyhow::{bail, Context, Result};
-use indicatif::{ProgressBar, ProgressStyle};
 use crate::term::Paint;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -163,15 +162,8 @@ fn windows(ids: &[u32], ctx: usize) -> Vec<std::ops::Range<usize>> {
     out
 }
 
-fn progress(len: usize, label: &str, unit: &str) -> ProgressBar {
-    let pb = ProgressBar::new(len as u64);
-    pb.set_style(
-        ProgressStyle::with_template(&format!("  {{prefix:<14}} {{bar:28.cyan/blue}} {{pos}}/{{len}} {unit:<7}  {{msg}}"))
-            .unwrap()
-            .progress_chars("━╸─"),
-    );
-    pb.set_prefix(label.to_string());
-    pb
+fn progress(len: usize, label: &str, unit: &str) -> crate::ui::Progress {
+    crate::ui::Progress::new(len, label, unit)
 }
 
 fn eval_doc(
@@ -180,7 +172,7 @@ fn eval_doc(
     ctx: usize,
     top_k: usize,
     gather: Option<&[Vec<u32>]>,
-    pb: &ProgressBar,
+    pb: &crate::ui::Progress,
 ) -> Result<Vec<PosOut>> {
     let mut out = Vec::with_capacity(ids.len().saturating_sub(1));
     for w in windows(ids, ctx) {
@@ -263,7 +255,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
     let machine = sys::machine();
     let mut meter = PowerMeter::new();
 
-    println!(
+    crate::say!(
         "{} {} prompts in {} categories · ctx {} · top-k {} · {}",
         "bitrot".bold().cyan(),
         docs.len(),
@@ -275,7 +267,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
     let idle_w = if meter.available() && !s.no_bench {
         let w = meter.idle_watts(1.5);
         if let Some(w) = w {
-            println!("  idle package power {:.2} W (subtracted from energy figures)", w);
+            crate::say!("  idle package power {:.2} W (subtracted from energy figures)", w);
         }
         w
     } else {
@@ -286,15 +278,15 @@ pub fn run(cfg: &Config) -> Result<Results> {
         None
     } else if s.tasks.is_dir() {
         let t = tasks::load(&s.tasks)?;
-        println!("  {} tasks with checkable answers, up to {} generated tokens each", t.len(), s.gen_tokens);
+        crate::say!("  {} tasks with checkable answers, up to {} generated tokens each", t.len(), s.gen_tokens);
         Some(t).filter(|t| !t.is_empty())
     } else {
-        println!("  {}", format!("no task directory at {} - skipping the answer check", s.tasks.display()).dimmed());
+        crate::say!("  {}", format!("no task directory at {} - skipping the answer check", s.tasks.display()).dimmed());
         None
     };
 
     // ---- reference pass -------------------------------------------------
-    println!("\n{} {}  {}", "reference".bold(), cfg.reference.name.bold().green(), cfg.reference.path.dimmed());
+    crate::say!("\n{} {}  {}", "reference".bold(), cfg.reference.name.bold().green(), cfg.reference.path.dimmed());
     let mut reference = backend::open(&cfg.reference, s)?;
     let ref_probe = reference.tokenize(TOKENIZER_PROBE, false)?;
     let doc_ids: Vec<Vec<u32>> = docs
@@ -342,7 +334,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
         task_prompts = list.iter().map(|t| reference.chat_prompt(&t.prompt)).collect::<Result<_>>()?;
         let (gen, runs) = run_tasks(reference.as_mut(), list, &task_prompts, s.gen_tokens, &cfg.reference.name, None)?;
         let correct = runs.iter().filter(|r| r.correct).count();
-        println!("  tasks {}/{} correct", correct, runs.len());
+        crate::say!("  tasks {}/{} correct", correct, runs.len());
         ref_gen = gen;
         ref_answers = score_answers(reference.as_mut(), &task_prompts, &ref_gen, s.top_k, None)?;
         let mut sec = TaskSection { items: list.clone(), gen_tokens: s.gen_tokens, ..Default::default() };
@@ -362,7 +354,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
     let mut cands = Vec::new();
     let mut cand_divs: Vec<Vec<TokenDiv>> = Vec::new();
     for spec in &cfg.candidates {
-        println!("\n{} {}  {}", "candidate".bold(), spec.name.bold().yellow(), spec.path.dimmed());
+        crate::say!("\n{} {}  {}", "candidate".bold(), spec.name.bold().yellow(), spec.path.dimmed());
         let mut model = backend::open(spec, s)?;
         if model.tokenize(TOKENIZER_PROBE, false)? != ref_probe {
             bail!(
@@ -446,7 +438,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
             })
             .collect();
 
-        println!(
+        crate::say!(
             "  KL mean {}  ·  top-1 {:.1}%  ·  ΔPPL {:+.2}%{}",
             format!("{:.4}", summary.kl_mean).bold(),
             summary.top1_agreement * 100.0,
@@ -503,7 +495,7 @@ pub fn run(cfg: &Config) -> Result<Results> {
             seed: 0x6b6c_6472_6966_7421,
         };
         let st = stats::bootstrap(&input);
-        println!("
+        crate::say!("
   {} bootstrap resamples in {:.1}s", st.replicates, t0.elapsed().as_secs_f64());
         st
     });

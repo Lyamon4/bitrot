@@ -17,6 +17,11 @@ pub fn init() {
     ENABLED.store(on, Ordering::Relaxed);
 }
 
+/// Turn colors off, e.g. while the TUI owns the screen and draws its own.
+pub fn disable() {
+    ENABLED.store(false, Ordering::Relaxed);
+}
+
 fn paint(code: &str, text: String) -> String {
     if ENABLED.load(Ordering::Relaxed) {
         format!("\x1b[{code}m{text}\x1b[0m")

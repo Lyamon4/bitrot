@@ -1,6 +1,7 @@
 //! bitrot - how much did quantization actually change your model?
 
 mod backend;
+mod banner;
 mod calibrate;
 mod config;
 mod dist;
@@ -12,9 +13,11 @@ mod stats;
 mod sys;
 mod tasks;
 mod term;
+mod tui;
+mod ui;
 
 use anyhow::{bail, Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use config::{guess_name, BackendKind, Config, ModelSpec, Settings, Thresholds};
 use crate::term::Paint;
 use std::path::{Path, PathBuf};
@@ -27,8 +30,9 @@ use std::path::{Path, PathBuf};
     long_about = None
 )]
 struct Cli {
+    /// Without a command, bitrot opens the terminal interface.
     #[command(subcommand)]
-    command: Cmd,
+    command: Option<Cmd>,
 }
 
 #[derive(Subcommand)]
@@ -52,6 +56,20 @@ enum Cmd {
         config: PathBuf,
         #[command(flatten)]
         opts: RunOpts,
+    },
+    /// Open the terminal interface: pick models, run, browse results.
+    Tui {
+        /// Folder with the GGUF files to compare.
+        #[arg(short, long, default_value = "models")]
+        models: PathBuf,
+        /// Output directory for results.json and report.html.
+        #[arg(short, long, default_value = "bitrot-out")]
+        out: PathBuf,
+    },
+    /// Browse a saved results.json in the terminal interface.
+    View {
+        #[arg(default_value = "bitrot-out/results.json")]
+        results: PathBuf,
     },
     /// Re-render the HTML report from a saved results.json.
     Report {
@@ -163,6 +181,10 @@ fn dedupe_names(cfg: &mut Config) {
     }
 }
 
+fn tui_settings() -> Settings {
+    Settings { prompts: bundled_dir("prompts"), tasks: bundled_dir("tasks"), ..Settings::default() }
+}
+
 /// Prefer `./<name>`, then the copy shipped next to the crate's sources.
 fn bundled_dir(name: &str) -> PathBuf {
     let local = PathBuf::from(name);
@@ -175,12 +197,11 @@ fn bundled_dir(name: &str) -> PathBuf {
 fn execute(mut cfg: Config, opts: &RunOpts) -> Result<()> {
     opts.apply(&mut cfg.settings);
     cfg.validate()?;
+    if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+        banner::print();
+    }
     let results = runner::run(&cfg)?;
-    std::fs::create_dir_all(&opts.out).with_context(|| format!("cannot create {}", opts.out.display()))?;
-    let json_path = opts.out.join("results.json");
-    std::fs::write(&json_path, serde_json::to_vec(&results)?)?;
-    let html_path = opts.out.join("report.html");
-    report::write_html(&results, &html_path)?;
+    let (json_path, html_path) = report::save(&results, &opts.out)?;
     report::print_summary(&results);
     println!("\n  {}  {}", "report".bold(), html_path.display().underline());
     println!("  {}    {}", "data".bold(), json_path.display());
@@ -190,7 +211,7 @@ fn execute(mut cfg: Config, opts: &RunOpts) -> Result<()> {
     Ok(())
 }
 
-fn open_in_browser(path: &Path) {
+pub(crate) fn open_in_browser(path: &Path) {
     let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let _ = if cfg!(target_os = "macos") {
         std::process::Command::new("open").arg(&path).status()
@@ -203,8 +224,14 @@ fn open_in_browser(path: &Path) {
 
 fn main() -> Result<()> {
     term::init();
-    let cli = Cli::parse();
-    match cli.command {
+    let matches = Cli::command().before_help(banner::plain()).get_matches();
+    let cli = Cli::from_arg_matches(&matches)?;
+    let Some(command) = cli.command else {
+        return tui::run(PathBuf::from("models"), tui_settings(), PathBuf::from("bitrot-out"));
+    };
+    match command {
+        Cmd::Tui { models, out } => tui::run(models, tui_settings(), out),
+        Cmd::View { results } => tui::view(&results),
         Cmd::Compare { reference, candidates, opts } => {
             let mut cfg = Config {
                 settings: Settings { prompts: bundled_dir("prompts"), tasks: bundled_dir("tasks"), ..Settings::default() },
